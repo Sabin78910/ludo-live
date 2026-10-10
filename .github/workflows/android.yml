@@ -28,7 +28,7 @@ jobs:
         with: { node-version: 22, cache: npm }
       - uses: actions/setup-java@v5
         with: { distribution: temurin, java-version: 21 }
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest ships the Android SDK (ANDROID_HOME); setup-android@v3 currently breaks on its sdkmanager.
       - run: npm ci
       - run: npm run build
       - run: npx cap sync android
