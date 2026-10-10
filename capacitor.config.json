@@ -1,0 +1,7 @@
+{
+  "appId": "com.sabinkhanal.ludolive",
+  "appName": "Ludo Live",
+  "webDir": "dist",
+  "backgroundColor": "#0B1026",
+  "android": { "backgroundColor": "#0B1026" }
+}

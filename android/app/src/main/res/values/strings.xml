@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Ludo Live</string>
+    <string name="title_activity_main">Ludo Live</string>
+    <string name="package_name">com.sabinkhanal.ludolive</string>
+    <string name="custom_url_scheme">com.sabinkhanal.ludolive</string>
+</resources>
