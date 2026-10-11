@@ -206,3 +206,37 @@ describe("RoomCore housekeeping", () => {
     expect(copy.view(0, 2)).toEqual(room.view(0, 2));
   });
 });
+
+describe("RoomCore spectators", () => {
+  it("counts spectators in the room view and never below zero", async () => {
+    const { room } = await lobby(2);
+    expect(room.view(null, 0).spectators).toBe(0);
+    room.spectate(1000);
+    room.spectate(1000);
+    expect(room.view(null, 0).spectators).toBe(2);
+    room.leaveSpectator();
+    room.leaveSpectator();
+    room.leaveSpectator();
+    expect(room.view(0, 0).spectators).toBe(0);
+  });
+  it("spectators watch a started game but cannot roll or move", async () => {
+    const { room } = await lobby(2);
+    room.start(0, false, 1000);
+    room.spectate(1000);
+    const before = JSON.stringify(room.data.game);
+    expect(await room.roll(-1, 1000)).toMatchObject({ ok: false, code: "not_allowed" });
+    expect(room.move(-1, 0, 1000)).toMatchObject({ ok: false });
+    expect(room.emoji(-1, 1000)).toBe(false);
+    expect(JSON.stringify(room.data.game)).toBe(before);
+    const v = room.view(null, 1000);
+    expect(v.you).toBeNull();
+    expect(v.game).not.toBeNull();
+  });
+  it("tolerates stored rooms from before spectators existed", async () => {
+    const { room } = await lobby(2);
+    delete (room.data as { spectators?: number }).spectators;
+    expect(room.view(null, 0).spectators).toBe(0);
+    room.spectate(0);
+    expect(room.view(null, 0).spectators).toBe(1);
+  });
+});

@@ -10,6 +10,7 @@ export interface Env {
 interface Attachment {
   code: string;
   token: string | null;
+  spectator?: boolean;
 }
 
 const json = (body: unknown, status = 200) =>
@@ -64,6 +65,20 @@ export class LudoRoom implements DurableObject {
     // so a late or lost alarm can never freeze a game.
     if (room && room.data.status === "playing" && (await room.tick(now))) await this.commit(room, now);
     if (msg.t === "ping") return send(ws, { t: "pong" });
+
+    if (msg.t === "hello" && msg.spectate) {
+      if (!room) {
+        send(ws, { t: "error", code: "not_found", message: "Room not found. Check the code." });
+        return ws.close(4004, "not found");
+      }
+      if (!att.spectator) {
+        room.spectate(now);
+        ws.serializeAttachment({ code: att.code, token: null, spectator: true } satisfies Attachment);
+      }
+      return this.commit(room, now);
+    }
+
+    if (att.spectator) return send(ws, { t: "error", code: "not_allowed", message: "Spectators cannot play" });
 
     if (msg.t === "hello") {
       if (!room) {
@@ -131,6 +146,10 @@ export class LudoRoom implements DurableObject {
   private async dropSocket(ws: WebSocket): Promise<void> {
     const att = ws.deserializeAttachment() as Attachment | null;
     const room = await this.load();
+    if (room && att?.spectator) {
+      room.leaveSpectator();
+      return this.commit(room, Date.now());
+    }
     if (!room || !att?.token) return;
     const stillOpen = this.state
       .getWebSockets()
@@ -163,15 +182,16 @@ export class LudoRoom implements DurableObject {
     else await this.state.storage.deleteAlarm();
     for (const ws of this.state.getWebSockets()) {
       const att = ws.deserializeAttachment() as Attachment;
-      if (!att.token) continue;
-      const seat = room.seatOfToken(att.token);
+      if (!att.token && !att.spectator) continue;
+      const seat = room.seatOfToken(att.token ?? undefined);
       send(ws, { t: "state", room: room.view(seat >= 0 ? seat : null, now) });
     }
   }
 
   private broadcastRaw(msg: ServerMsg): void {
     for (const ws of this.state.getWebSockets()) {
-      if ((ws.deserializeAttachment() as Attachment).token) send(ws, msg);
+      const att = ws.deserializeAttachment() as Attachment;
+      if (att.token || att.spectator) send(ws, msg);
     }
   }
 }

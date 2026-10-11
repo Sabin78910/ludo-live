@@ -39,7 +39,7 @@ export function cleanName(name: unknown, fallback = "Player"): string {
 }
 
 export type ClientMsg =
-  | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean }
+  | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean; spectate?: boolean }
   | { t: "start"; quick?: boolean }
   | { t: "addBot" }
   | { t: "removeBot"; seat: number }
@@ -67,6 +67,8 @@ export interface RoomView {
   mode: Mode;
   seats: SeatView[];
   you: number | null;
+  /** Read-only viewers currently watching. */
+  spectators: number;
   serverSeedHash: string;
   clientSeeds: string[];
   /** Revealed only when the game is over. */
@@ -109,6 +111,7 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
         clientSeed: typeof o.clientSeed === "string" ? o.clientSeed : "",
         token: typeof o.token === "string" ? o.token.slice(0, 64) : undefined,
         create: o.create === true,
+        spectate: o.spectate === true,
       };
     case "start":
       return { t: "start", quick: o.quick === true };

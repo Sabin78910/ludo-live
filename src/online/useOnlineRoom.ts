@@ -19,7 +19,7 @@ export interface OnlineRoom {
   controller: Controller | null;
 }
 
-export function useOnlineRoom(url: string, code: string, name: string, clientSeed: string, create: boolean, reduced: boolean): OnlineRoom {
+export function useOnlineRoom(url: string, code: string, name: string, clientSeed: string, create: boolean, reduced: boolean, spectate = false): OnlineRoom {
   const [room, setRoom] = useState<RoomView | null>(null);
   const [skew, setSkew] = useState(0);
   const [status, setStatus] = useState<ConnStatus>("connecting");
@@ -33,7 +33,8 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
 
   useEffect(() => {
     let rid = 0;
-    const c = new RoomClient(url, code, { name, clientSeed, create }, {
+    setError(null);
+    const c = new RoomClient(url, code, { name, clientSeed, create, spectate }, {
       onState(view, at) {
         const prev = prevRef.current;
         // Animate only consecutive updates; after a reconnect the board snaps into place.
@@ -57,7 +58,7 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
     clientRef.current = c;
     c.connect();
     return () => c.stop();
-  }, [url, code, name, clientSeed, create, reduced]);
+  }, [url, code, name, clientSeed, create, reduced, spectate]);
 
   // Re-render when the animation lock ends.
   useEffect(() => {

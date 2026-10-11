@@ -73,6 +73,18 @@ describe("RoomClient", () => {
     expect(sockets).toHaveLength(1);
   });
 
+  it("spectators say hello with spectate, never create, and keep no token", () => {
+    const sockets: FakeSocket[] = [];
+    const c = new RoomClient("ws://x/room/ABCDEF", "ABCDEF", { name: "W", clientSeed: "s", create: true, spectate: true }, { onState: vi.fn() }, () => {
+      const s = new FakeSocket();
+      sockets.push(s);
+      return s;
+    });
+    c.connect();
+    sockets[0].open();
+    expect(JSON.parse(sockets[0].sent[0])).toMatchObject({ t: "hello", spectate: true, create: false });
+  });
+
   it("ignores garbage messages", () => {
     const { sockets, onState } = make();
     sockets[0].open();

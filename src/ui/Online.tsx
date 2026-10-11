@@ -21,7 +21,8 @@ export interface OnlineProps {
 }
 
 export function OnlineRoomScreen(p: OnlineProps) {
-  const { room, status, error, reactions, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
+  const [spectate, setSpectate] = useState(false);
+  const { room, status, error, reactions, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced, spectate);
   const [quick, setQuick] = useState(p.quick);
   const [copied, setCopied] = useState(false);
   const lang = p.lang;
@@ -32,6 +33,11 @@ export function OnlineRoomScreen(p: OnlineProps) {
     return (
       <main className="screen center">
         <p className="verdict bad">{error.code === "not_found" ? t(lang, "roomNotFound") : error.message}</p>
+        {(error.code === "started" || error.code === "full") && (
+          <button type="button" className="btn primary" onClick={() => setSpectate(true)}>
+            👀 {t(lang, "watch")}
+          </button>
+        )}
         <button type="button" className="btn" onClick={p.onExit}>
           {t(lang, "back")}
         </button>
@@ -65,7 +71,8 @@ export function OnlineRoomScreen(p: OnlineProps) {
         reactions={reactions}
         playerOfSeat={(seat) => room.playerSeats.indexOf(seat)}
         onEmoji={(emoji) => send({ t: "emoji", emoji })}
-        banner={banner}
+        banner={banner ?? (room.you === null ? t(lang, "watching") : null)}
+        spectators={room.spectators}
       />
     );
   }
@@ -94,6 +101,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
         {p.code}
       </h1>
       {!room && <p className="muted">{t(lang, "connecting")}</p>}
+      {!!room?.spectators && <p className="muted" title={t(lang, "spectators")}>👀 {room.spectators}</p>}
       {banner && <p className="banner">{banner}</p>}
       <section className="glass invite">
         <h2>{t(lang, "inviteFriends")}</h2>

@@ -57,7 +57,7 @@ export class RoomClient {
   constructor(
     private readonly url: string,
     private readonly code: string,
-    private readonly hello: { name: string; clientSeed: string; create: boolean },
+    private readonly hello: { name: string; clientSeed: string; create: boolean; spectate?: boolean },
     private readonly handlers: RoomHandlers,
     private readonly makeSocket: (url: string) => SocketLike = (u) => new WebSocket(u) as unknown as SocketLike,
   ) {
@@ -73,7 +73,7 @@ export class RoomClient {
       this.attempts = 0;
       this.handlers.onStatus?.("open");
       // Only ask to create the room if we have never been in it.
-      this.send({ t: "hello", name: this.hello.name, clientSeed: this.hello.clientSeed, token: this.token, create: this.hello.create && !this.token });
+      this.send({ t: "hello", name: this.hello.name, clientSeed: this.hello.clientSeed, token: this.hello.spectate ? undefined : this.token, create: this.hello.create && !this.token && !this.hello.spectate, spectate: this.hello.spectate });
       this.pinger = setInterval(() => this.send({ t: "ping" }), 10_000);
     };
     ws.onmessage = (ev) => this.receive(ev.data);

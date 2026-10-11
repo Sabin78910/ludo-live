@@ -52,6 +52,8 @@ export interface RoomData {
   /** When the current turn is played automatically (bot delay, or the human turn timer). */
   actAt: number | null;
   lastActivity: number;
+  /** Connected read-only viewers (absent in rooms stored before spectators existed). */
+  spectators?: number;
 }
 
 export type JoinResult = { ok: true; seat: number; token: string; rejoined: boolean } | { ok: false; code: ErrorCode; message: string };
@@ -80,6 +82,7 @@ export class RoomCore {
       seq: 0,
       actAt: null,
       lastActivity: now,
+      spectators: 0,
     });
   }
 
@@ -114,6 +117,15 @@ export class RoomCore {
     });
     if (d.seats.length === 1 || !d.seats[d.host]?.connected) d.host = d.seats.length - 1;
     return { ok: true, seat: d.seats.length - 1, token, rejoined: false };
+  }
+
+  spectate(now: number): void {
+    this.data.spectators = (this.data.spectators ?? 0) + 1;
+    this.data.lastActivity = now;
+  }
+
+  leaveSpectator(): void {
+    this.data.spectators = Math.max(0, (this.data.spectators ?? 0) - 1);
   }
 
   disconnect(seat: number, now: number): void {
@@ -318,6 +330,7 @@ export class RoomCore {
         host: i === d.host,
       })),
       you: seat,
+      spectators: d.spectators ?? 0,
       serverSeedHash: d.serverSeedHash,
       clientSeeds: d.status === "lobby" ? d.seats.map((s) => s.clientSeed) : d.clientSeeds,
       serverSeed: d.status === "over" ? d.serverSeed : null,

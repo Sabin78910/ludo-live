@@ -25,6 +25,8 @@ export interface GameViewProps {
   playerOfSeat?(seat: number): number;
   onEmoji?(emoji: string): void;
   banner?: string | null;
+  /** Number of read-only viewers; shown as 👀 N when above zero. */
+  spectators?: number;
 }
 
 export function GameView(props: GameViewProps) {
@@ -171,6 +173,11 @@ export function GameView(props: GameViewProps) {
           <span aria-hidden="true">🔒</span> {t(lang, "fairChip")}
           <code>{ctl.fair.serverSeedHash.slice(0, 10) || "…"}</code>
         </div>
+        {!!props.spectators && (
+          <span className="mode-chip" title={t(lang, "spectators")}>
+            👀 {props.spectators}
+          </span>
+        )}
         {state.mode === "quick" && <span className="mode-chip">⚡ {t(lang, "quickMode")}</span>}
       </header>
       {props.banner && <div className="banner">{props.banner}</div>}
