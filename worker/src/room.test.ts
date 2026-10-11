@@ -206,3 +206,47 @@ describe("RoomCore housekeeping", () => {
     expect(copy.view(0, 2)).toEqual(room.view(0, 2));
   });
 });
+
+describe("RoomCore ranked", () => {
+  async function ranked(ratings: (number | undefined)[], bots = 0, ranked = true) {
+    const room = await RoomCore.create("ABCDEF", 1000, SEED);
+    ratings.forEach((rating, i) => room.join({ name: `P${i}`, clientSeed: `seed${i}`, rating }, 1000, tok));
+    for (let i = 0; i < bots; i++) room.addBot(0, 0);
+    room.start(0, true, 0, ranked);
+    return room;
+  }
+  async function finish(room: RoomCore) {
+    let now = 0;
+    for (let i = 0; i < 3000 && room.data.status === "playing"; i++) {
+      now = Math.max(now + 1, room.nextAlarm() ?? now + 1);
+      await room.tick(now);
+    }
+    expect(room.data.status).toBe("over");
+    return room.view(0, now);
+  }
+  it("is unranked by default with no deltas", async () => {
+    const room = await ranked([1200, 1200], 0, false);
+    expect((await finish(room)).seats.map((s) => s.ratingDelta)).toEqual([null, null]);
+    expect(room.view(0, 0).ranked).toBe(false);
+  });
+  it("gives zero-sum deltas to humans; bots get none", async () => {
+    const room = await ranked([1200, 1300], 1);
+    const v = await finish(room);
+    expect(v.ranked).toBe(true);
+    expect(v.seats[2].ratingDelta).toBeNull();
+    const [a, b] = [v.seats[0].ratingDelta!, v.seats[1].ratingDelta!];
+    expect(a + b).toBe(0);
+    expect(a).not.toBe(0);
+  });
+  it("does not rate a takeover seat", async () => {
+    const room = await ranked([1200, 1200, 1200]);
+    room.disconnect(2, 0);
+    const v = await finish(room);
+    expect(v.seats[2].ratingDelta).toBeNull();
+    expect(v.seats[0].ratingDelta! + v.seats[1].ratingDelta!).toBe(0);
+  });
+  it("gives no deltas with fewer than two rated humans", async () => {
+    const room = await ranked([1200, undefined]);
+    expect((await finish(room)).seats.map((s) => s.ratingDelta)).toEqual([null, null]);
+  });
+});

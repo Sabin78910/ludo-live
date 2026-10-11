@@ -1106,3 +1106,7 @@ tr.bad td {
     transform: none;
   }
 }
+
+.delta { font-weight: 700; font-size: 0.85em; }
+.delta.up { color: #22c55e; }
+.delta.down { color: #ef4444; }

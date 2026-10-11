@@ -9,6 +9,7 @@ import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
 import { GameView } from "./ui/GameView";
+import { loadRating } from "./game/rating";
 import { OnlineRoomScreen } from "./ui/Online";
 import { Verify, type Proof } from "./ui/Verify";
 
@@ -30,6 +31,10 @@ export default function App() {
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
+  const [rating, setRating] = useState(() => loadRating().rating);
+  useEffect(() => {
+    if (screen.name === "home") setRating(loadRating().rating);
+  }, [screen]);
   const { canInstall, install } = useInstallPrompt();
   const lang = settings.lang;
 
@@ -173,6 +178,7 @@ export default function App() {
         <h1>{t(lang, "appName")}</h1>
         <p className="muted">{t(lang, "tagline")}</p>
         <p className="badges">
+          <span className="badge">🏅 {t(lang, "yourRating")} {rating}</span>
           <span className="badge">🔒 {t(lang, "fairChip")}</span>
           <span className="badge">🚫 {t(lang, "noAds")}</span>
         </p>

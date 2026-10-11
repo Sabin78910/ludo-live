@@ -34,7 +34,10 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg('{"t":"roll"}')).toEqual({ t: "roll" });
     expect(parseClientMsg('{"t":"move","token":2}')).toEqual({ t: "move", token: 2 });
     expect(parseClientMsg('{"t":"emoji","emoji":"🔥"}')).toEqual({ t: "emoji", emoji: "🔥" });
-    expect(parseClientMsg('{"t":"start","quick":true}')).toEqual({ t: "start", quick: true });
+    expect(parseClientMsg('{"t":"start","quick":true}')).toEqual({ t: "start", quick: true, ranked: false });
+    expect(parseClientMsg('{"t":"start","quick":true,"ranked":true}')).toEqual({ t: "start", quick: true, ranked: true });
+    expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","rating":1250}')).toMatchObject({ rating: 1250 });
+    expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","rating":"hi"}')).toMatchObject({ rating: undefined });
     expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","create":true}')).toMatchObject({ t: "hello", name: "A", create: true });
   });
   it("rejects malformed or unknown input", () => {

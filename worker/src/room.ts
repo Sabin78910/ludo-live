@@ -1,5 +1,6 @@
 // Authoritative room logic, independent of the Durable Object runtime so it can be unit tested.
 // The Durable Object (index.ts) only stores RoomData, forwards messages and schedules alarms.
+import { eloDeltas } from "../../src/engine/elo";
 import { chooseMove } from "../../src/engine/bot";
 import { cleanClientSeed, deriveRoll, randomHex, sha256Hex } from "../../src/engine/fair";
 import { MAX_SEATS, cleanName, type ErrorCode, type RoomStatus, type RoomView } from "../../src/engine/protocol";
@@ -28,6 +29,8 @@ export interface SeatState {
   token: string;
   name: string;
   clientSeed: string;
+  /** Rating the player reported on joining (kept on their device); null for bots and unrated players. */
+  rating: number | null;
   connected: boolean;
   disconnectedAt: number | null;
   bot: boolean;
@@ -44,6 +47,9 @@ export interface RoomData {
   serverSeedHash: string;
   status: RoomStatus;
   mode: Mode;
+  ranked?: boolean;
+  /** Per seat, set once a ranked game ends. */
+  ratingDeltas?: (number | null)[];
   clientSeeds: string[];
   game: GameState | null;
   playerSeats: number[];
@@ -87,7 +93,7 @@ export class RoomCore {
     return token ? this.data.seats.findIndex((s) => s.token === token) : -1;
   }
 
-  join(msg: { name: string; clientSeed: string; token?: string }, now: number, newToken: () => string = () => randomHex(16)): JoinResult {
+  join(msg: { name: string; clientSeed: string; token?: string; rating?: number }, now: number, newToken: () => string = () => randomHex(16)): JoinResult {
     const d = this.data;
     d.lastActivity = now;
     const existing = this.seatOfToken(msg.token);
@@ -106,6 +112,7 @@ export class RoomCore {
       token,
       name: cleanName(msg.name, `Player ${d.seats.length + 1}`),
       clientSeed: cleanClientSeed(msg.clientSeed),
+      rating: msg.rating ?? null,
       connected: true,
       disconnectedAt: null,
       bot: false,
@@ -137,6 +144,7 @@ export class RoomCore {
       token: randomHex(16),
       name: `Bot ${n}`,
       clientSeed: randomHex(8),
+      rating: null,
       connected: true,
       disconnectedAt: null,
       bot: true,
@@ -156,7 +164,7 @@ export class RoomCore {
     return { ok: true };
   }
 
-  start(seat: number, quick: boolean, now: number): ActionResult {
+  start(seat: number, quick: boolean, now: number, ranked = false): ActionResult {
     const d = this.data;
     if (seat !== d.host) return fail("not_allowed", "Only the host can start");
     if (d.status !== "lobby") return fail("started", "The game has started");
@@ -167,6 +175,8 @@ export class RoomCore {
     if (d.seats.length < 2) return fail("bad", "Need at least 2 players (add a bot)");
     const colors = seatColors(d.seats.length);
     d.mode = quick ? "quick" : "classic";
+    d.ranked = ranked;
+    d.ratingDeltas = undefined;
     d.clientSeeds = d.seats.map((s) => s.clientSeed); // locked from here on
     d.playerSeats = d.seats.map((_, i) => i);
     d.game = createGame(
@@ -242,9 +252,23 @@ export class RoomCore {
     if (d.game?.phase === "over") {
       d.status = "over";
       d.actAt = null;
+      if (d.ranked) d.ratingDeltas = this.computeRatingDeltas();
       return;
     }
     this.schedule(now + animationSteps(events) * STEP_MS);
+  }
+
+  /** Bots, takeover seats and players without a rating are left out; the rest are rated against each other. */
+  private computeRatingDeltas(): (number | null)[] {
+    const d = this.data;
+    const deltas: (number | null)[] = d.seats.map(() => null);
+    const order = d
+      .game!.finished.map((p) => d.playerSeats[p])
+      .filter((i) => !d.seats[i].bot && !d.seats[i].takeover && d.seats[i].rating !== null);
+    if (order.length < 2) return deltas;
+    const change = eloDeltas(order.map((i) => d.seats[i].rating!));
+    order.forEach((i, k) => (deltas[i] = change[k]));
+    return deltas;
   }
 
   private schedule(from: number): void {
@@ -309,6 +333,7 @@ export class RoomCore {
       code: d.code,
       status: d.status,
       mode: d.mode,
+      ranked: d.ranked === true,
       seats: d.seats.map((s, i) => ({
         name: s.name,
         color: colors[d.playerSeats.indexOf(i)] ?? null,
@@ -316,6 +341,7 @@ export class RoomCore {
         bot: s.bot,
         takeover: s.takeover,
         host: i === d.host,
+        ratingDelta: d.ratingDeltas?.[i] ?? null,
       })),
       you: seat,
       serverSeedHash: d.serverSeedHash,

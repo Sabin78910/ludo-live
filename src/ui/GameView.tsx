@@ -22,6 +22,8 @@ export interface GameViewProps {
   onAgain?(): void;
   onVerify(): void;
   reactions?: Reaction[];
+  /** Ranked games: rating change per game player (null for bots and unrated players). */
+  ratingDeltas?: (number | null)[];
   playerOfSeat?(seat: number): number;
   onEmoji?(emoji: string): void;
   banner?: string | null;
@@ -253,7 +255,7 @@ export function GameView(props: GameViewProps) {
         <Results
           lang={lang}
           title={status}
-          order={state.finished.map((i) => ({ name: names[i], color: colors[i] }))}
+          order={state.finished.map((i) => ({ name: names[i], color: colors[i], delta: props.ratingDeltas?.[i] ?? null }))}
           reduced={reduced}
           onAgain={props.onAgain}
           onHome={props.onExit}

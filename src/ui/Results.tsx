@@ -15,7 +15,7 @@ export function Results({
 }: {
   lang: Lang;
   title: string;
-  order: { name: string; color: Color }[];
+  order: { name: string; color: Color; delta?: number | null }[];
   reduced: boolean;
   onAgain?(): void;
   onHome(): void;
@@ -58,13 +58,14 @@ export function Results({
                 <span className="token-body" />
               </span>
               <span className="step-name">{p.name}</span>
+              <Delta delta={p.delta} />
               <div className={`block pc-${p.color}`}>{t(lang, `place${place}` as StringKey)}</div>
             </div>
           ))}
         </div>
         {order[3] && (
           <p className="fourth">
-            {t(lang, "place4")}: {order[3].name}
+            {t(lang, "place4")}: {order[3].name} <Delta delta={order[3].delta} />
           </p>
         )}
         <div className="row-btns">
@@ -83,4 +84,9 @@ export function Results({
       </div>
     </div>
   );
+}
+
+function Delta({ delta }: { delta?: number | null }) {
+  if (delta === null || delta === undefined) return null;
+  return <span className={`delta ${delta >= 0 ? "up" : "down"}`}>{delta >= 0 ? `+${delta}` : `−${Math.abs(delta)}`}</span>;
 }

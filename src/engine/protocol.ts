@@ -39,8 +39,8 @@ export function cleanName(name: unknown, fallback = "Player"): string {
 }
 
 export type ClientMsg =
-  | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean }
-  | { t: "start"; quick?: boolean }
+  | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean; rating?: number }
+  | { t: "start"; quick?: boolean; ranked?: boolean }
   | { t: "addBot" }
   | { t: "removeBot"; seat: number }
   | { t: "roll" }
@@ -57,6 +57,8 @@ export interface SeatView {
   /** A bot is playing for a player who disconnected for 30s. */
   takeover: boolean;
   host: boolean;
+  /** Rating change after a ranked game; null when unranked, or for bots and takeover seats. */
+  ratingDelta: number | null;
 }
 
 export type RoomStatus = "lobby" | "playing" | "over";
@@ -65,6 +67,7 @@ export interface RoomView {
   code: string;
   status: RoomStatus;
   mode: Mode;
+  ranked: boolean;
   seats: SeatView[];
   you: number | null;
   serverSeedHash: string;
@@ -109,9 +112,10 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
         clientSeed: typeof o.clientSeed === "string" ? o.clientSeed : "",
         token: typeof o.token === "string" ? o.token.slice(0, 64) : undefined,
         create: o.create === true,
+        rating: Number.isInteger(o.rating) && (o.rating as number) >= 0 && (o.rating as number) <= 10_000 ? (o.rating as number) : undefined,
       };
     case "start":
-      return { t: "start", quick: o.quick === true };
+      return { t: "start", quick: o.quick === true, ranked: o.ranked === true };
     case "addBot":
     case "roll":
     case "ping":

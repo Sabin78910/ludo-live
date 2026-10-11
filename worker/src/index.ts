@@ -98,7 +98,7 @@ export class LudoRoom implements DurableObject {
     let result: { ok: boolean; code?: string; message?: string } = { ok: true };
     switch (msg.t) {
       case "start":
-        result = room.start(seat, msg.quick === true, now);
+        result = room.start(seat, msg.quick === true, now, msg.ranked === true);
         break;
       case "addBot":
         result = room.addBot(seat, now);
