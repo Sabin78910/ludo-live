@@ -1,30 +1,37 @@
 # Ludo Live
-Purpose: Online multiplayer Ludo (React 19, TS, Vite PWA + Capacitor Android) with provably fair dice,
-smart bots, pass-and-play and online rooms on a Cloudflare Worker + Durable Objects.
+Online Ludo with provably fair dice, smart bots and pass and play.
+
+## Stack
+React 19 · TypeScript (strict) · Vite · Vitest · ESLint. Installable PWA with offline support.
+Design: deep navy #0B1026 with glass, classic Ludo red, green, yellow and blue, Outfit.
 
 ## Commands
-- Test: `npm test` (engine, worker room logic, client)
-- Lint: `npm run lint && npm run typecheck` (typecheck also checks `worker/`)
-- Build: `npm run build`
-- Worker: `cd worker && npm ci && npx wrangler dev` (local rooms on :8787; set `VITE_WS_URL=ws://localhost:8787` in `.env.development.local`)
+- Dev: `npm run dev` · Build: `npm run build`
+- Test: `npm test` · Lint: `npm run lint && npm run typecheck`
 
 ## Architecture
-- `src/engine/` pure shared rules (rules.ts, board.ts, bot.ts, fair.ts, protocol.ts). Used by BOTH client and Worker. No DOM.
-- `worker/src/room.ts` authoritative room logic (pure, unit tested); `worker/src/index.ts` Durable Object + WebSocket glue.
-- `src/game/` client logic (local game hook, animation frames, i18n EN+NE, settings, sound); `src/online/` WebSocket client.
-- `src/ui/` components. Styles in `src/index.css`.
+- `src/engine/` pure rules, shared by client and server · `worker/` Cloudflare Durable Object per room
+- The server is authoritative for every move; the client never decides a roll.
 
-## Rules
-- Read only the files you need; do not scan the whole repo.
-- Every behavior change needs a test. Run tests and lint before finishing.
-- Engine changes must keep client and server in sync (same module). Never change the fair-dice derivation
-  (`fair.ts`) without a migration plan: old games must still verify.
-- No ads during matches. No dark patterns.
-- No new dependencies, permissions, or signing/secrets changes without asking.
-- Never commit secrets, keystores, .env files.
-- Keep PRs under ~300 changed lines; one issue per PR.
-- Be concise: diffs plus a 3-line summary.
-- If tests still fail after 3 attempts, stop and report the blocker.
+## Data rules
+- Rooms live in a Durable Object keyed by a 6 character code. `VITE_WS_URL` points at the Worker.
+- Dice use commit and reveal: publish SHA-256(seed) before play, reveal the seed after. Never change this
+  scheme without keeping the Verify fairness screen correct.
 
-## Definition of done
-Lint clean, tests pass, CI green, short summary, PR opened as draft.
+## Testing rules
+- Every behaviour change needs a test. Pure logic in `src/*.ts` is unit-tested; components get the
+  behaviour test, not the markup. Run lint, typecheck and tests before finishing.
+
+## Frontend rules
+- Keep the existing design system, dark-first with a working light theme. Editorial layouts, not dashboard
+  grids. Respect `prefers-reduced-motion`, keep AA contrast and 44px targets.
+- Self-host fonts with @fontsource; a Google Fonts link blocks first paint and costs ~2s on mobile.
+- Keep gzipped JS under ~180KB and Lighthouse mobile performance at 90+.
+
+## Security and git
+- Never commit secrets, keystores, .env files or email addresses.
+- Keep the Content-Security-Policy strict; add a host to connect-src only when a feature needs it.
+- `main` is protected: branch, open a PR, merge when CI is green. One issue per PR, under ~300 lines.
+
+## Done when
+Lint clean, tests pass, CI green, PR opened with a three line summary.
