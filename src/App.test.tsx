@@ -28,4 +28,16 @@ describe("App", () => {
     expect(screen.getAllByRole("button", { name: "Tap the dice to roll" }).length).toBe(1);
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
+
+  it("opens a tournament bracket with two semis and an unseeded final", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /Pass & play/ }));
+    await userEvent.click(screen.getByRole("button", { name: /Tournament/ }));
+    expect(screen.getByRole("region", { name: "Semi-final 1" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Semi-final 2" })).toBeInTheDocument();
+    expect(screen.getByText("Waiting for the semi-finals")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Play Semi-final 1" }));
+    expect(await screen.findByText("Fair dice")).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(4);
+  });
 });

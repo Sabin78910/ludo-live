@@ -10,6 +10,7 @@ export function Results({
   order,
   reduced,
   onAgain,
+  againLabel,
   onHome,
   onVerify,
 }: {
@@ -18,8 +19,9 @@ export function Results({
   order: { name: string; color: Color }[];
   reduced: boolean;
   onAgain?(): void;
+  againLabel?: string;
   onHome(): void;
-  onVerify(): void;
+  onVerify?(): void;
 }) {
   const pieces = useMemo(
     () =>
@@ -70,12 +72,14 @@ export function Results({
         <div className="row-btns">
           {onAgain && (
             <button type="button" className="btn primary" onClick={onAgain}>
-              {t(lang, "playAgain")}
+              {againLabel ?? t(lang, "playAgain")}
             </button>
           )}
-          <button type="button" className="btn" onClick={onVerify}>
-            🔒 {t(lang, "verify")}
-          </button>
+          {onVerify && (
+            <button type="button" className="btn" onClick={onVerify}>
+              🔒 {t(lang, "verify")}
+            </button>
+          )}
           <button type="button" className="btn ghost" onClick={onHome}>
             {t(lang, "home")}
           </button>

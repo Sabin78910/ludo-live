@@ -8,8 +8,10 @@ import { loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { createTournament, recordResult, TOURNAMENT_SIZE, type TableId, type Tournament } from "./game/tournament";
 import { GameView } from "./ui/GameView";
 import { OnlineRoomScreen } from "./ui/Online";
+import { BracketScreen } from "./ui/Tournament";
 import { Verify, type Proof } from "./ui/Verify";
 
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -18,6 +20,8 @@ type Screen =
   | { name: "home" }
   | { name: "setup"; mode: "bots" | "local" }
   | { name: "local"; seats: LocalSeat[]; quick: boolean; key: number }
+  | { name: "bracket"; mode: "bots" | "local"; bracket: Tournament; proofs: Partial<Record<TableId, Proof>> }
+  | { name: "tableGame"; mode: "bots" | "local"; bracket: Tournament; proofs: Partial<Record<TableId, Proof>>; table: TableId; key: number }
   | { name: "online"; code: string; create: boolean }
   | { name: "verify"; proof: Proof; back: Screen };
 
@@ -62,6 +66,43 @@ export default function App() {
   const myName = settings.name.trim() || t(lang, "you");
 
   if (screen.name === "verify") return <Verify proof={screen.proof} lang={lang} onBack={() => setScreen(screen.back)} />;
+
+  if (screen.name === "bracket") {
+    const { mode, bracket, proofs } = screen;
+    return (
+      <BracketScreen
+        lang={lang}
+        bracket={bracket}
+        reduced={reduced}
+        onPlay={(table) => (tap(), setScreen({ name: "tableGame", mode, bracket, proofs, table, key: Date.now() }))}
+        onVerifyTable={(id) => proofs[id] && setScreen({ name: "verify", proof: proofs[id]!, back: screen })}
+        onHome={() => setScreen({ name: "home" })}
+      />
+    );
+  }
+
+  if (screen.name === "tableGame") {
+    const { mode, bracket, proofs, table: id } = screen;
+    const table = bracket.tables.find((x) => x.id === id)!;
+    const seats: LocalSeat[] = table.seats.map((p, i) => ({
+      color: seatColors(4)[i],
+      name: bracket.names[p],
+      bot: mode === "bots" && p !== 0 ? settings.difficulty : null,
+    }));
+    const finish = (order: number[], proof: Proof) =>
+      setScreen({ name: "bracket", mode, bracket: recordResult(bracket, id, order.map((i) => table.seats[i])), proofs: { ...proofs, [id]: proof } });
+    return (
+      <LocalGame
+        key={screen.key}
+        seats={seats}
+        quick={settings.quick}
+        settings={settings}
+        reduced={reduced}
+        onExit={() => setScreen({ name: "bracket", mode, bracket, proofs })}
+        onFinish={finish}
+      />
+    );
+  }
 
   if (screen.name === "local") {
     return (
@@ -109,6 +150,13 @@ export default function App() {
       }));
       setScreen({ name: "local", seats, quick: settings.quick, key: Date.now() });
     };
+    const startTournament = () => {
+      tap();
+      const names = Array.from({ length: TOURNAMENT_SIZE }, (_, i) =>
+        bots ? (i === 0 ? myName : `${t(lang, "bot")} ${i}`) : i === 0 && settings.name ? settings.name : `${t(lang, "player")} ${i + 1}`,
+      );
+      setScreen({ name: "bracket", mode: screen.mode, bracket: createTournament(names), proofs: {} });
+    };
     return (
       <main className="screen setup">
         <button type="button" className="btn ghost back" onClick={() => setScreen({ name: "home" })}>
@@ -146,6 +194,9 @@ export default function App() {
           </label>
           <button type="button" className="btn primary big" onClick={start}>
             {t(lang, "start")}
+          </button>
+          <button type="button" className="btn big" onClick={startTournament}>
+            🏆 {t(lang, "tournament")} <small>{t(lang, "tournamentSub")}</small>
           </button>
         </section>
       </main>
@@ -261,17 +312,24 @@ function LocalGame({
   onExit,
   onAgain,
   onVerify,
+  onFinish,
 }: {
   seats: LocalSeat[];
   quick: boolean;
   settings: Settings;
   reduced: boolean;
   onExit(): void;
-  onAgain(): void;
-  onVerify(p: Proof): void;
+  onAgain?(): void;
+  onVerify?(p: Proof): void;
+  /** Tournament table: report the finishing order and fair-dice proof instead of offering a rematch. */
+  onFinish?(order: number[], p: Proof): void;
 }) {
   const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced);
   const state = ctl.state!;
+  const proof = (): Proof | null =>
+    ctl.fair.serverSeed
+      ? { serverSeed: ctl.fair.serverSeed, serverSeedHash: ctl.fair.serverSeedHash, clientSeeds: ctl.fair.clientSeeds, rolls: state.rolls, names: seats.map((s) => s.name) }
+      : null;
   return (
     <GameView
       ctl={ctl}
@@ -281,17 +339,15 @@ function LocalGame({
       haptics={settings.haptics}
       reduced={reduced}
       onExit={onExit}
-      onAgain={onAgain}
-      onVerify={() =>
-        ctl.fair.serverSeed &&
-        onVerify({
-          serverSeed: ctl.fair.serverSeed,
-          serverSeedHash: ctl.fair.serverSeedHash,
-          clientSeeds: ctl.fair.clientSeeds,
-          rolls: state.rolls,
-          names: seats.map((s) => s.name),
-        })
-      }
+      onAgain={onFinish ? () => {
+        const p = proof();
+        if (p) onFinish(state.finished, p);
+      } : onAgain}
+      againLabel={onFinish ? t(settings.lang, "continueBracket") : undefined}
+      onVerify={onFinish ? undefined : () => {
+        const p = proof();
+        if (p) onVerify?.(p);
+      }}
     />
   );
 }

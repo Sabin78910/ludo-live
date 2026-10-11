@@ -1106,3 +1106,14 @@ tr.bad td {
     transform: none;
   }
 }
+.bracket {
+  display: grid;
+  gap: 16px;
+}
+.bracket ol {
+  margin: 0;
+  padding-left: 1.4em;
+}
+.bracket .btn {
+  min-height: 44px;
+}

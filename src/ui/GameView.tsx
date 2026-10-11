@@ -20,7 +20,8 @@ export interface GameViewProps {
   reduced: boolean;
   onExit(): void;
   onAgain?(): void;
-  onVerify(): void;
+  againLabel?: string;
+  onVerify?(): void;
   reactions?: Reaction[];
   playerOfSeat?(seat: number): number;
   onEmoji?(emoji: string): void;
@@ -256,6 +257,7 @@ export function GameView(props: GameViewProps) {
           order={state.finished.map((i) => ({ name: names[i], color: colors[i] }))}
           reduced={reduced}
           onAgain={props.onAgain}
+          againLabel={props.againLabel}
           onHome={props.onExit}
           onVerify={props.onVerify}
         />
