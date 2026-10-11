@@ -31,6 +31,7 @@ describe("settings", () => {
     expect(s.difficulty).toBe(fb.difficulty);
     expect(s.lang).toBe(fb.lang);
     expect(s.clientSeed).toBe(fb.clientSeed);
+    expect(s.playerId).toBe(fb.playerId);
   });
   it("keeps valid saved values", () => {
     const s = parseSettings(JSON.stringify({ players: 2, difficulty: "hard", lang: "ne", quick: true, sound: false }), fb);
@@ -38,6 +39,7 @@ describe("settings", () => {
   });
   it("creates a random hex client seed", () => {
     expect(defaultSettings().clientSeed).toMatch(/^[0-9a-f]{16}$/);
+    expect(defaultSettings().playerId).toMatch(/^[0-9a-f]{16}$/);
   });
 });
 

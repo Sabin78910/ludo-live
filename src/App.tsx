@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { DIFFICULTIES, type Difficulty } from "./engine/bot";
 import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
+import { addFriends, loadFriends, removeFriend, saveFriends, type Friend } from "./game/friends";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
 import { loadSettings, saveSettings, type Settings } from "./game/settings";
@@ -30,6 +31,12 @@ export default function App() {
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
+  const [friendsOpen, setFriendsOpen] = useState(false);
+  const [friends, setFriends] = useState<Friend[]>(loadFriends);
+  const changeFriends = (next: Friend[]) => {
+    saveFriends(next);
+    setFriends(next);
+  };
   const { canInstall, install } = useInstallPrompt();
   const lang = settings.lang;
 
@@ -91,6 +98,7 @@ export default function App() {
         haptics={settings.haptics}
         reduced={reduced}
         quick={settings.quick}
+        onPlayed={(names) => changeFriends(addFriends(friends, names, Date.now()))}
         onExit={() => setScreen({ name: "home" })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
       />
@@ -233,10 +241,44 @@ export default function App() {
             ⬇ {t(lang, "install")}
           </button>
         )}
+        {WS_URL && (
+          <button type="button" className="btn small ghost" onClick={() => setFriendsOpen(true)}>
+            👥 {t(lang, "friends")}
+          </button>
+        )}
         <a className="btn small ghost" href="https://sabin78910.github.io/privacy-policy/" target="_blank" rel="noreferrer">
           {t(lang, "privacy")}
         </a>
       </footer>
+      {friendsOpen && (
+        <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "friends")} onClick={() => setFriendsOpen(false)}>
+          <div className="results-card" onClick={(e) => e.stopPropagation()}>
+            <h2>{t(lang, "friends")}</h2>
+            {friends.length === 0 && <p className="muted">{t(lang, "friendsEmpty")}</p>}
+            <ul className="friends">
+              {friends.map((f) => (
+                <li key={f.id}>
+                  <span className="avatar">{f.name.slice(0, 1).toUpperCase()}</span>
+                  <span className="pname">{f.name}</span>
+                  <button
+                    type="button"
+                    className="btn small primary"
+                    onClick={() => (tap(), setFriendsOpen(false), setScreen({ name: "online", code: newRoomCode(), create: true }))}
+                  >
+                    {t(lang, "invite")}
+                  </button>
+                  <button type="button" className="btn small ghost" aria-label={`${t(lang, "remove")} ${f.name}`} onClick={() => changeFriends(removeFriend(friends, f.id))}>
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <button type="button" className="btn" onClick={() => setFriendsOpen(false)}>
+              {t(lang, "close")}
+            </button>
+          </div>
+        </div>
+      )}
       {rules && (
         <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "rules")} onClick={() => setRules(false)}>
           <div className="results-card" onClick={(e) => e.stopPropagation()}>

@@ -13,6 +13,8 @@ export interface Settings {
   quick: boolean;
   /** This device's contribution to the fair-dice seeds. */
   clientSeed: string;
+  /** Random, stable per-device id (never sent to a server account; none exists). */
+  playerId: string;
 }
 
 const KEY = "ludo-live.settings";
@@ -27,6 +29,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     players: 4,
     quick: false,
     clientSeed: randomHex(8),
+    playerId: randomHex(8),
   };
 }
 
@@ -47,6 +50,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
+      playerId: typeof o.playerId === "string" && /^[0-9a-f]{8,64}$/.test(o.playerId) ? o.playerId : fallback.playerId,
     };
   } catch {
     return fallback;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { t, type Lang } from "../game/i18n";
 import { inviteLink, whatsappUrl } from "../game/share";
 import { useOnlineRoom } from "../online/useOnlineRoom";
@@ -16,6 +16,8 @@ export interface OnlineProps {
   haptics: boolean;
   reduced: boolean;
   quick: boolean;
+  /** Called once per game with the other human players' names. */
+  onPlayed?(names: string[]): void;
   onExit(): void;
   onVerify(p: Proof): void;
 }
@@ -25,6 +27,15 @@ export function OnlineRoomScreen(p: OnlineProps) {
   const [quick, setQuick] = useState(p.quick);
   const [copied, setCopied] = useState(false);
   const lang = p.lang;
+  const started = !!room?.game;
+  const { onPlayed } = p;
+  useEffect(() => {
+    if (!room?.game || room.you === null) return;
+    const others = room.seats.filter((s, i) => i !== room.you && !s.bot).map((s) => s.name);
+    if (others.length) onPlayed?.(others);
+    // Save once when the game starts.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [started]);
   const link = inviteLink(p.code, window.location);
   const shareText = `${t(lang, "shareText", { code: p.code })} ${link}`;
 
