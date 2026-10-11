@@ -28,6 +28,38 @@ async function playTurn(room: RoomCore, now: number) {
   }
 }
 
+describe("RoomCore 6-player board", () => {
+  it("only the host picks the board, and the seat cap follows it", async () => {
+    const { room } = await lobby(4);
+    expect(room.setBoard(1, "hex")).toMatchObject({ ok: false, code: "not_allowed" });
+    expect(room.setBoard(0, "hex")).toEqual({ ok: true });
+    expect(room.view(0, 0).board).toBe("hex");
+    expect(room.join({ name: "P4", clientSeed: "a" }, 0, tok)).toMatchObject({ ok: true, seat: 4 });
+    expect(room.addBot(0, 0)).toEqual({ ok: true });
+    expect(room.join({ name: "X", clientSeed: "x" }, 0, tok)).toMatchObject({ ok: false, code: "full" });
+    expect(room.addBot(0, 0)).toMatchObject({ ok: false, code: "full" });
+  });
+  it("refuses to go back to the classic board with more than 4 seated", async () => {
+    const { room } = await lobby(4);
+    room.setBoard(0, "hex");
+    room.addBot(0, 0);
+    expect(room.setBoard(0, "classic")).toMatchObject({ ok: false, code: "bad" });
+  });
+  it("starts a hex game with six distinct colours and a fair 78-cell board", async () => {
+    const { room } = await lobby(2);
+    room.setBoard(0, "hex");
+    for (let i = 0; i < 4; i++) room.addBot(0, 0);
+    expect(room.start(0, false, 0)).toEqual({ ok: true });
+    expect(room.data.game!.board).toBe("hex");
+    expect(new Set(room.data.game!.players.map((p) => p.color)).size).toBe(6);
+  });
+  it("cannot change the board after the game starts", async () => {
+    const { room } = await lobby(2);
+    room.start(0, false, 0);
+    expect(room.setBoard(0, "hex")).toMatchObject({ ok: false, code: "started" });
+  });
+});
+
 describe("RoomCore lobby", () => {
   it("commits to the server seed hash before anyone joins", async () => {
     const room = await RoomCore.create("ABCDEF", 0, SEED);

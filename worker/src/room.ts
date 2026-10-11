@@ -2,13 +2,14 @@
 // The Durable Object (index.ts) only stores RoomData, forwards messages and schedules alarms.
 import { chooseMove } from "../../src/engine/bot";
 import { cleanClientSeed, deriveRoll, randomHex, sha256Hex } from "../../src/engine/fair";
-import { MAX_SEATS, cleanName, type ErrorCode, type RoomStatus, type RoomView } from "../../src/engine/protocol";
+import { cleanName, maxSeats, type ErrorCode, type RoomStatus, type RoomView } from "../../src/engine/protocol";
 import {
   animationSteps,
   applyMove,
   applyRoll,
   autoMove,
   createGame,
+  type BoardId,
   legalMoves,
   seatColors,
   type GameEvent,
@@ -44,6 +45,7 @@ export interface RoomData {
   serverSeedHash: string;
   status: RoomStatus;
   mode: Mode;
+  board: BoardId;
   clientSeeds: string[];
   game: GameState | null;
   playerSeats: number[];
@@ -73,6 +75,7 @@ export class RoomCore {
       serverSeedHash: await sha256Hex(serverSeed),
       status: "lobby",
       mode: "classic",
+      board: "classic",
       clientSeeds: [],
       game: null,
       playerSeats: [],
@@ -100,7 +103,7 @@ export class RoomCore {
       return { ok: true, seat: existing, token: seat.token, rejoined: true };
     }
     if (d.status !== "lobby") return fail("started", "This game has already started");
-    if (d.seats.length >= MAX_SEATS) return fail("full", "This room is full");
+    if (d.seats.length >= maxSeats(d.board ?? "classic")) return fail("full", "This room is full");
     const token = newToken();
     d.seats.push({
       token,
@@ -131,7 +134,7 @@ export class RoomCore {
     const d = this.data;
     if (seat !== d.host) return fail("not_allowed", "Only the host can add bots");
     if (d.status !== "lobby") return fail("started", "The game has started");
-    if (d.seats.length >= MAX_SEATS) return fail("full", "The room is full");
+    if (d.seats.length >= maxSeats(d.board ?? "classic")) return fail("full", "The room is full");
     const n = d.seats.filter((s) => s.bot).length + 1;
     d.seats.push({
       token: randomHex(16),
@@ -156,6 +159,15 @@ export class RoomCore {
     return { ok: true };
   }
 
+  setBoard(seat: number, board: BoardId): ActionResult {
+    const d = this.data;
+    if (seat !== d.host) return fail("not_allowed", "Only the host can pick the board");
+    if (d.status !== "lobby") return fail("started", "The game has started");
+    if (d.seats.length > maxSeats(board)) return fail("bad", "Too many players for that board");
+    d.board = board;
+    return { ok: true };
+  }
+
   start(seat: number, quick: boolean, now: number): ActionResult {
     const d = this.data;
     if (seat !== d.host) return fail("not_allowed", "Only the host can start");
@@ -165,13 +177,14 @@ export class RoomCore {
     d.seats = d.seats.filter((s) => s.connected || s.bot);
     d.host = Math.max(0, d.seats.findIndex((s) => s.token === hostToken));
     if (d.seats.length < 2) return fail("bad", "Need at least 2 players (add a bot)");
-    const colors = seatColors(d.seats.length);
+    const board = d.board ?? "classic";
+    const colors = seatColors(d.seats.length, board);
     d.mode = quick ? "quick" : "classic";
     d.clientSeeds = d.seats.map((s) => s.clientSeed); // locked from here on
     d.playerSeats = d.seats.map((_, i) => i);
     d.game = createGame(
       d.seats.map((s, i) => ({ color: colors[i], name: s.name })),
-      { mode: d.mode },
+      { mode: d.mode, board },
     );
     d.status = "playing";
     this.emit([{ type: "turn", player: 0 }], now);
@@ -309,6 +322,7 @@ export class RoomCore {
       code: d.code,
       status: d.status,
       mode: d.mode,
+      board: d.board ?? "classic",
       seats: d.seats.map((s, i) => ({
         name: s.name,
         color: colors[d.playerSeats.indexOf(i)] ?? null,

@@ -1,9 +1,10 @@
 // Wire protocol between the browser and the room Durable Object. Shared by both sides.
-import type { Color, GameEvent, GameState, Mode } from "./rules";
+import { BOARDS, type BoardId, type Color, type GameEvent, type GameState, type Mode } from "./rules";
 
 export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/1/I to avoid misreads
 export const ROOM_CODE_LENGTH = 6;
-export const MAX_SEATS = 4;
+/** Seats a room allows: 4 on the classic board, 6 on the hex board. */
+export const maxSeats = (board: BoardId): number => BOARDS[board].colors.length;
 export const EMOJIS = ["👍", "😂", "😮", "😡", "🔥", "🎉", "😭", "🙏"] as const;
 export const MAX_NAME = 16;
 
@@ -41,6 +42,7 @@ export function cleanName(name: unknown, fallback = "Player"): string {
 export type ClientMsg =
   | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean }
   | { t: "start"; quick?: boolean }
+  | { t: "board"; board: BoardId }
   | { t: "addBot" }
   | { t: "removeBot"; seat: number }
   | { t: "roll" }
@@ -65,6 +67,7 @@ export interface RoomView {
   code: string;
   status: RoomStatus;
   mode: Mode;
+  board: BoardId;
   seats: SeatView[];
   you: number | null;
   serverSeedHash: string;
@@ -112,6 +115,8 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
       };
     case "start":
       return { t: "start", quick: o.quick === true };
+    case "board":
+      return o.board === "classic" || o.board === "hex" ? { t: "board", board: o.board } : null;
     case "addBot":
     case "roll":
     case "ping":

@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { chooseMove, type Difficulty } from "../engine/bot";
 import { FairDealer } from "../engine/fair";
-import { applyMove, applyRoll, autoMove, createGame, type GameEvent, type GameState, type Player } from "../engine/rules";
+import { applyMove, applyRoll, autoMove, createGame, type BoardId, type GameEvent, type GameState, type Player } from "../engine/rules";
 import { animDuration } from "./anim";
 import type { Controller } from "./controller";
 
@@ -10,11 +10,14 @@ export interface LocalSeat extends Player {
   bot: Difficulty | null;
 }
 
+/** 5 and 6 players sit on the hexagonal board; 2 to 4 on the classic one. */
+export const boardFor = (players: number): BoardId => (players > 4 ? "hex" : "classic");
+
 export const BOT_THINK_MS = 450;
 
 export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: string, reduced: boolean): Controller {
   const [snap, setSnap] = useState<{ state: GameState; events: GameEvent[]; seq: number; prev: number[][] }>(() => {
-    const state = createGame(seats.map(({ color, name }) => ({ color, name })), { mode: quick ? "quick" : "classic" });
+    const state = createGame(seats.map(({ color, name }) => ({ color, name })), { mode: quick ? "quick" : "classic", board: boardFor(seats.length) });
     return { state, events: [], seq: 0, prev: state.tokens };
   });
   const [dealer, setDealer] = useState<FairDealer | null>(null);

@@ -100,6 +100,9 @@ export class LudoRoom implements DurableObject {
       case "start":
         result = room.start(seat, msg.quick === true, now);
         break;
+      case "board":
+        result = room.setBoard(seat, msg.board);
+        break;
       case "addBot":
         result = room.addBot(seat, now);
         break;

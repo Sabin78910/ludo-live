@@ -1,5 +1,5 @@
-import { BASE_ORIGIN, GRID, HOME_COLUMN, TRACK, cellKind, startCell, tokenPosition } from "./board";
-import { COLORS, FINISH, LAST_TRACK, STAR_INDICES } from "./rules";
+import { BASE_ORIGIN, GRID, HEX_SIZE, HEX_TRACK, HOME_COLUMN, TRACK, cellKind, hexHomeColumn, hexYard, startCell, tokenPosition } from "./board";
+import { BOARDS, COLORS, FINISH, LAST_TRACK, STAR_INDICES } from "./rules";
 
 describe("board geometry", () => {
   it("has 52 unique track cells inside the grid", () => {
@@ -59,5 +59,43 @@ describe("board geometry", () => {
         expect(fc).toBeLessThan(9);
       }
     }
+  });
+});
+
+describe("hex board geometry", () => {
+  const dist = (a: readonly number[], b: readonly number[]) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const hexColors = BOARDS.hex.colors;
+
+  it("has 78 unique track cells inside the board", () => {
+    expect(HEX_TRACK).toHaveLength(78);
+    expect(new Set(HEX_TRACK.map(([r, c]) => `${r.toFixed(3)},${c.toFixed(3)}`)).size).toBe(78);
+    for (const [r, c] of HEX_TRACK) for (const v of [r, c]) expect(v > 0 && v < HEX_SIZE).toBe(true);
+  });
+  it("keeps cells one step apart and each cell next to the following one", () => {
+    for (let i = 0; i < 78; i++) {
+      expect(dist(HEX_TRACK[i], HEX_TRACK[(i + 1) % 78])).toBeLessThan(1.4);
+      for (let j = i + 1; j < 78; j++) expect(dist(HEX_TRACK[i], HEX_TRACK[j])).toBeGreaterThan(0.99);
+    }
+  });
+  it("puts the 13-cell arms' starts evenly around the track", () => {
+    hexColors.forEach((c, i) => expect(BOARDS.hex.startOffset[c]).toBe(13 * i));
+  });
+  it("each home column joins the colour's last track cell and does not touch the track", () => {
+    for (const color of hexColors) {
+      const col = hexHomeColumn(color);
+      expect(col).toHaveLength(5);
+      expect(dist(tokenPosition(color, BOARDS.hex.lastTrack, 0, "hex"), col[0])).toBeLessThan(1.01);
+      for (let i = 1; i < 5; i++) expect(dist(col[i - 1], col[i])).toBeCloseTo(1, 5);
+      for (const cell of col) for (const t of HEX_TRACK) expect(dist(cell, t)).toBeGreaterThan(0.99);
+    }
+  });
+  it("keeps yard spots off the track and apart from each other", () => {
+    const spots = hexColors.flatMap((c) => hexYard(c));
+    expect(spots).toHaveLength(24);
+    for (const s of spots) {
+      for (const t of HEX_TRACK) expect(dist(s, t)).toBeGreaterThan(0.9);
+      expect(s.every((v) => v > 0 && v < HEX_SIZE)).toBe(true);
+    }
+    spots.forEach((a, i) => spots.slice(i + 1).forEach((b) => expect(dist(a, b)).toBeGreaterThan(0.9)));
   });
 });

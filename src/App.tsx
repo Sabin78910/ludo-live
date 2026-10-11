@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { DIFFICULTIES, type Difficulty } from "./engine/bot";
 import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
+import { boardFor } from "./game/useLocalGame";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
 import { loadSettings, saveSettings, type Settings } from "./game/settings";
@@ -101,7 +102,7 @@ export default function App() {
     const bots = screen.mode === "bots";
     const start = () => {
       tap();
-      const colors = seatColors(settings.players);
+      const colors = seatColors(settings.players, boardFor(settings.players));
       const seats: LocalSeat[] = colors.map((color, i) => ({
         color,
         name: bots ? (i === 0 ? myName : `${t(lang, "bot")} ${i}`) : i === 0 && settings.name ? settings.name : `${t(lang, "player")} ${i + 1}`,
@@ -122,7 +123,7 @@ export default function App() {
           </label>
           <fieldset className="seg">
             <legend>{t(lang, "players")}</legend>
-            {[2, 3, 4].map((n) => (
+            {[2, 3, 4, 5, 6].map((n) => (
               <button key={n} type="button" aria-pressed={settings.players === n} onClick={() => update({ players: n })}>
                 {n}
               </button>

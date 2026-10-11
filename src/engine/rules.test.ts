@@ -1,5 +1,6 @@
 import {
   BASE,
+  BOARDS,
   FINISH,
   RuleError,
   START_OFFSET,
@@ -293,5 +294,52 @@ describe("move helpers", () => {
   it("animationSteps counts move cells and captures", () => {
     expect(animationSteps([{ type: "move", player: 0, token: 0, from: 1, to: 4, path: [2, 3, 4] }])).toBe(3);
     expect(animationSteps([{ type: "capture", player: 0, victim: 1, token: 0, cell: 3 }])).toBe(4);
+  });
+});
+
+describe("hex board spec", () => {
+  const hex = BOARDS.hex;
+  const six: Player[] = seatColors(6, "hex").map((color, i) => ({ color, name: `P${i}` }));
+
+  it("keeps classic as the default and describes six 13-cell arms", () => {
+    expect(createGame(two).board).toBeUndefined();
+    expect(hex.trackLen).toBe(78);
+    expect(hex.colors).toHaveLength(6);
+    expect(hex.colors).toEqual(expect.arrayContaining(["purple", "orange"]));
+    expect(hex.stars).toEqual([8, 21, 34, 47, 60, 73]);
+    expect(hex.safe.size).toBe(12);
+  });
+  it("seats 2 to 6 players and rejects others", () => {
+    for (let n = 2; n <= 6; n++) expect(new Set(seatColors(n, "hex")).size).toBe(n);
+    expect(seatColors(2, "hex")).toEqual(["red", "yellow"]);
+    expect(() => seatColors(7, "hex")).toThrow(RuleError);
+    expect(() => seatColors(5)).toThrow(RuleError);
+    expect(() => createGame(six)).toThrow(RuleError);
+    expect(() => createGame(two.concat({ color: "orange", name: "C" }))).toThrow(RuleError);
+    expect(createGame(six, { board: "hex" }).players).toHaveLength(6);
+  });
+  it("wraps tracks at 78 and walks a full lap before the home column", () => {
+    expect(trackIndex("purple", 20, hex)).toBe((65 + 20) % 78);
+    expect(trackIndex("red", hex.lastTrack, hex)).toBe(76);
+    expect(trackIndex("red", hex.lastTrack + 1, hex)).toBeNull();
+    expect(target(hex.lastTrack, 1, hex)).toBe(hex.lastTrack + 1);
+    expect(target(hex.finish - 1, 2, hex)).toBeNull();
+    expect(isSafeIndex(73, hex)).toBe(true);
+    expect(isSafeIndex(73)).toBe(false);
+  });
+  it("captures on the hex track but not on safe cells", () => {
+    const g = { ...createGame(six, { board: "hex" }), phase: "move" as const, dice: 3 };
+    // red 10 -> 13 is orange's start (safe); red 14 -> 17 meets orange 4 (index 17).
+    const safe = { ...g, tokens: g.tokens.map((t, i) => (i === 0 ? [10, -1, -1, -1] : i === 1 ? [0, -1, -1, -1] : t)) };
+    expect(applyMove(safe, 0).events.some((e) => e.type === "capture")).toBe(false);
+    const hit = { ...g, tokens: g.tokens.map((t, i) => (i === 0 ? [14, -1, -1, -1] : i === 1 ? [4, -1, -1, -1] : t)) };
+    const r = applyMove(hit, 0);
+    expect(r.events.some((e) => e.type === "capture")).toBe(true);
+    expect(r.state.tokens[1][0]).toBe(BASE);
+  });
+  it("finishes at the hex finish value", () => {
+    const g = { ...createGame(two, { board: "hex" }), phase: "move" as const, dice: 1 };
+    const r = applyMove({ ...g, tokens: [[hex.finish - 1, hex.finish, hex.finish, hex.finish], g.tokens[1]] }, 0);
+    expect(r.events.some((e) => e.type === "finish")).toBe(true);
   });
 });

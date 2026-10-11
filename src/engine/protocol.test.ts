@@ -1,4 +1,4 @@
-import { ROOM_CODE_ALPHABET, cleanName, newRoomCode, normalizeRoomCode, parseClientMsg } from "./protocol";
+import { ROOM_CODE_ALPHABET, cleanName, maxSeats, newRoomCode, normalizeRoomCode, parseClientMsg } from "./protocol";
 
 describe("room codes", () => {
   it("are 6 characters from the unambiguous alphabet", () => {
@@ -44,5 +44,14 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg('{"t":"emoji","emoji":"<script>"}')).toBeNull();
     expect(parseClientMsg("x".repeat(3000))).toBeNull();
     expect(parseClientMsg(42)).toBeNull();
+  });
+});
+
+describe("board message", () => {
+  it("accepts only known boards", () => {
+    expect(parseClientMsg('{"t":"board","board":"hex"}')).toEqual({ t: "board", board: "hex" });
+    expect(parseClientMsg('{"t":"board","board":"nope"}')).toBeNull();
+    expect(maxSeats("hex")).toBe(6);
+    expect(maxSeats("classic")).toBe(4);
   });
 });

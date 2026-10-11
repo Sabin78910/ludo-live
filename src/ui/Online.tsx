@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { maxSeats } from "../engine/protocol";
 import { t, type Lang } from "../game/i18n";
 import { inviteLink, whatsappUrl } from "../game/share";
 import { useOnlineRoom } from "../online/useOnlineRoom";
@@ -115,7 +116,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
       {room && (
         <section className="glass seats">
           <h2>
-            {t(lang, "players")} {room.seats.length}/4
+            {t(lang, "players")} {room.seats.length}/{maxSeats(room.board)}
           </h2>
           <ul>
             {room.seats.map((s, i) => (
@@ -137,11 +138,17 @@ export function OnlineRoomScreen(p: OnlineProps) {
           </ul>
           {isHost ? (
             <>
-              {room.seats.length < 4 && (
+              {room.seats.length < maxSeats(room.board) && (
                 <button type="button" className="btn" onClick={() => send({ t: "addBot" })}>
                   + {t(lang, "addBot")}
                 </button>
               )}
+              <label className="switch">
+                <input type="checkbox" checked={room.board === "hex"} onChange={(e) => send({ t: "board", board: e.target.checked ? "hex" : "classic" })} />
+                <span>
+                  ⬡ {t(lang, "sixBoard")} <small>{t(lang, "sixBoardSub")}</small>
+                </span>
+              </label>
               <label className="switch">
                 <input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} />
                 <span>

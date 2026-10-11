@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { BASE_ORIGIN, GRID, HOME_COLUMN, TRACK, tokenPosition } from "../engine/board";
-import { COLORS, START_OFFSET, STAR_INDICES, type Color } from "../engine/rules";
+import { BASE_ORIGIN, GRID, HEX_SIZE, HEX_TRACK, HOME_COLUMN, TRACK, hexHomeColumn, hexYard, tokenPosition } from "../engine/board";
+import { BOARDS, COLORS, START_OFFSET, STAR_INDICES, type BoardId, type ClassicColor, type Color } from "../engine/rules";
 
 export interface Burst {
   id: number;
@@ -9,9 +9,53 @@ export interface Burst {
   color: Color;
 }
 
-export const ROTATION: Record<Color, number> = { blue: 0, red: -90, green: 180, yellow: 90 };
+const CLASSIC_ROTATION = { blue: 0, red: -90, green: 180, yellow: 90 };
 
-const pct = (v: number) => `${(v / GRID) * 100}%`;
+/** Board rotation (degrees) that brings a colour's arm to the bottom of the screen. */
+export function rotationFor(color: Color, board: BoardId = "classic"): number {
+  if (board === "classic") return CLASSIC_ROTATION[color as keyof typeof CLASSIC_ROTATION];
+  return -90 - 60 * BOARDS.hex.colors.indexOf(color);
+}
+
+const pct = (v: number, size = GRID) => `${(v / size) * 100}%`;
+
+/** The 6-player board: 78 track cells on six arms, drawn as circles so no grid is implied. */
+const HexArt = memo(function HexArt() {
+  const { colors, startOffset, stars } = BOARDS.hex;
+  const startIdx = new Map(colors.map((c) => [startOffset[c]!, c]));
+  const mid = HEX_SIZE / 2;
+  return (
+    <svg className="board-art" viewBox={`0 0 ${HEX_SIZE} ${HEX_SIZE}`} aria-hidden="true">
+      <rect x="0" y="0" width={HEX_SIZE} height={HEX_SIZE} rx="0.8" fill="var(--board)" />
+      {colors.map((color) => {
+        const spots = hexYard(color);
+        const [cy, cx] = [0, 1].map((k) => spots.reduce((sum, p) => sum + p[k], 0) / 4);
+        return (
+          <g key={color}>
+            <circle cx={cx} cy={cy} r="2.1" fill={`var(--${color})`} opacity="0.85" />
+            <circle cx={cx} cy={cy} r="1.7" fill="var(--yard)" />
+            {spots.map(([r, c], i) => (
+              <circle key={i} cx={c} cy={r} r="0.5" fill={`var(--${color})`} opacity="0.3" />
+            ))}
+            {hexHomeColumn(color).map(([r, c], i) => (
+              <circle key={`h${i}`} cx={c} cy={r} r="0.44" fill={`var(--${color})`} opacity={0.75 + i * 0.05} />
+            ))}
+          </g>
+        );
+      })}
+      {HEX_TRACK.map(([r, c], i) => {
+        const start = startIdx.get(i);
+        return (
+          <g key={i}>
+            <circle cx={c} cy={r} r="0.46" fill={start ? `var(--${start})` : "var(--cell)"} stroke="var(--cell-line)" strokeWidth="0.03" />
+            {stars.includes(i) && <Star x={c} y={r} />}
+          </g>
+        );
+      })}
+      <circle cx={mid} cy={mid} r="1.2" fill="var(--gold)" />
+    </svg>
+  );
+});
 
 const BoardArt = memo(function BoardArt() {
   const startIdx = new Map(COLORS.map((c) => [START_OFFSET[c], c]));
@@ -76,7 +120,7 @@ const BoardArt = memo(function BoardArt() {
   );
 });
 
-function startArrow(c: Color): number {
+function startArrow(c: ClassicColor): number {
   return { red: 0, green: 90, yellow: 180, blue: 270 }[c];
 }
 
@@ -99,22 +143,24 @@ export interface BoardProps {
   hopping: string | null;
   bursts: Burst[];
   labelFor(player: number, token: number): string;
+  board?: BoardId;
 }
 
-export function Board({ colors, tokens, movable, current, onPick, rotation, hopping, bursts, labelFor }: BoardProps) {
+export function Board({ colors, tokens, movable, current, onPick, rotation, hopping, bursts, labelFor, board = "classic" }: BoardProps) {
   // Group tokens per cell so stacked tokens fan out instead of hiding each other.
   const items = tokens.flatMap((list, p) =>
     list.map((progress, ti) => {
-      const [r, c] = tokenPosition(colors[p], progress, ti);
+      const [r, c] = tokenPosition(colors[p], progress, ti, board);
       return { p, ti, r, c, key: `${r.toFixed(2)},${c.toFixed(2)}` };
     }),
   );
   const counts = new Map<string, number>();
   items.forEach((it) => counts.set(it.key, (counts.get(it.key) ?? 0) + 1));
   const seen = new Map<string, number>();
+  const size = board === "hex" ? HEX_SIZE : GRID;
   return (
     <div className="board" style={{ "--rot": `${rotation}deg` } as React.CSSProperties}>
-      <BoardArt />
+      {board === "hex" ? <HexArt /> : <BoardArt />}
       {items.map(({ p, ti, r, c, key }) => {
         const n = counts.get(key)!;
         const k = seen.get(key) ?? 0;
@@ -127,7 +173,7 @@ export function Board({ colors, tokens, movable, current, onPick, rotation, hopp
             key={id}
             type="button"
             className={`token tok-${colors[p]}${can ? " movable" : ""}${hopping === id ? " hop" : ""}${n > 1 ? " stacked" : ""}`}
-            style={{ left: pct(c + dx), top: pct(r), zIndex: Math.round(r * 10) + (can ? 500 : 0) }}
+            style={{ left: pct(c + dx, size), top: pct(r, size), zIndex: Math.round(r * 10) + (can ? 500 : 0) }}
             disabled={!can}
             onClick={() => onPick(ti)}
             aria-label={labelFor(p, ti)}
@@ -137,7 +183,7 @@ export function Board({ colors, tokens, movable, current, onPick, rotation, hopp
         );
       })}
       {bursts.map((b) => (
-        <div key={b.id} className={`burst burst-${b.color}`} style={{ left: pct(b.col), top: pct(b.row) }} aria-hidden="true">
+        <div key={b.id} className={`burst burst-${b.color}`} style={{ left: pct(b.col, size), top: pct(b.row, size) }} aria-hidden="true">
           {Array.from({ length: 10 }, (_, i) => (
             <i key={i} style={{ "--a": `${i * 36}deg` } as React.CSSProperties} />
           ))}

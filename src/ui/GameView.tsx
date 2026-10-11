@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { tokenPosition, TRACK } from "../engine/board";
+import { HEX_TRACK, tokenPosition, TRACK } from "../engine/board";
+import { BOARDS } from "../engine/rules";
 import { EMOJIS } from "../engine/protocol";
 import { legalMoves, type Color } from "../engine/rules";
 import { ROLL_MS, buildFrames, eventToast } from "../game/anim";
@@ -7,7 +8,7 @@ import type { Controller } from "../game/controller";
 import { t, type Lang, type StringKey } from "../game/i18n";
 import { play, vibrate, type Sfx } from "../game/sound";
 import type { Reaction } from "../online/useOnlineRoom";
-import { Board, ROTATION, type Burst } from "./Board";
+import { Board, rotationFor, type Burst } from "./Board";
 import { Dice } from "./Dice";
 import { Results } from "./Results";
 
@@ -31,6 +32,7 @@ export function GameView(props: GameViewProps) {
   const { ctl, names, lang, reduced } = props;
   const state = ctl.state!;
   const colors = state.players.map((p) => p.color);
+  const board = state.board ?? "classic";
   const [display, setDisplay] = useState<number[][]>(state.tokens);
   const [hopping, setHopping] = useState<string | null>(null);
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -83,13 +85,14 @@ export function GameView(props: GameViewProps) {
             setHopping(`${x.player}-${x.token}`);
             sfx("enter");
           } else if (x.kind === "capture") {
-            const [r, c] = TRACK[x.cell];
+            const [r, c] = board === "hex" ? HEX_TRACK[x.cell] : TRACK[x.cell];
+            const half = board === "hex" ? 0 : 0.5;
             const id = ++burstId.current;
-            setBursts((b) => [...b, { id, row: r + 0.5, col: c + 0.5, color: colors[x.victim] }]);
+            setBursts((b) => [...b, { id, row: r + half, col: c + half, color: colors[x.victim] }]);
             later(900, () => setBursts((b) => b.filter((y) => y.id !== id)));
             sfx("capture");
           } else if (x.kind === "home") {
-            const [r, c] = tokenPosition(colors[x.player], 56, x.token);
+            const [r, c] = tokenPosition(colors[x.player], BOARDS[board].finish, x.token, board);
             const id = ++burstId.current;
             setBursts((b) => [...b, { id, row: r, col: c, color: colors[x.player] }]);
             later(900, () => setBursts((b) => b.filter((y) => y.id !== id)));
@@ -145,7 +148,7 @@ export function GameView(props: GameViewProps) {
   const diceValue = lastRoll && lastRoll.type === "roll" ? lastRoll.value : (state.rolls.at(-1)?.value ?? 1);
   const allLocal = ctl.local.every(Boolean);
   const me = ctl.local.findIndex(Boolean);
-  const rotation = !allLocal && me >= 0 ? ROTATION[colors[me]] : 0;
+  const rotation = !allLocal && me >= 0 ? rotationFor(colors[me], board) : 0;
   const cur = state.current;
   const curName = names[cur];
   const canRoll = ctl.canAct && state.phase === "roll" && !rolling;
@@ -202,6 +205,7 @@ export function GameView(props: GameViewProps) {
       <div className="stage">
         <div className="board-tilt">
           <Board
+            board={board}
             colors={colors}
             tokens={display}
             movable={movable}

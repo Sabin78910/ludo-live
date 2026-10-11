@@ -17,6 +17,12 @@
   --blue: #3b82f6;
   --blue-hi: #93c0ff;
   --blue-lo: #1c4fb0;
+  --orange: #fb7a1e;
+  --orange-hi: #fdba74;
+  --orange-lo: #b04a05;
+  --purple: #a855f7;
+  --purple-hi: #d8b4fe;
+  --purple-lo: #6b21a8;
   --gold: #f5c451;
   --board: #f6f1e6;
   --yard: #fffdf8;
@@ -1105,4 +1111,26 @@ tr.bad td {
   .board-tilt {
     transform: none;
   }
+}
+
+/* Colours that only exist on the 6-player board */
+.pc-orange,
+.dk-orange,
+.tok-orange {
+  --c: var(--orange);
+  --hi: var(--orange-hi);
+  --lo: var(--orange-lo);
+}
+.pc-purple,
+.dk-purple,
+.tok-purple {
+  --c: var(--purple);
+  --hi: var(--purple-hi);
+  --lo: var(--purple-lo);
+}
+.burst-orange i:nth-child(odd) {
+  background: var(--orange);
+}
+.burst-purple i:nth-child(odd) {
+  background: var(--purple);
 }

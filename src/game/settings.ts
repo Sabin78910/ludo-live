@@ -44,7 +44,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       haptics: typeof o.haptics === "boolean" ? o.haptics : fallback.haptics,
       name: typeof o.name === "string" ? o.name.slice(0, 16) : fallback.name,
       difficulty: o.difficulty === "easy" || o.difficulty === "hard" || o.difficulty === "normal" ? o.difficulty : fallback.difficulty,
-      players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
+      players: typeof o.players === "number" && o.players >= 2 && o.players <= 6 ? Math.round(o.players) : fallback.players,
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };

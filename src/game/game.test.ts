@@ -1,6 +1,7 @@
 import { BASE, type GameEvent } from "../engine/rules";
 import { CAPTURE_MS, ROLL_MS, STEP_MS, animDuration, buildFrames, eventToast } from "./anim";
 import { allKeys, localDigits, t, tableFor } from "./i18n";
+import { boardFor } from "./useLocalGame";
 import { defaultSettings, detectLang, parseSettings } from "./settings";
 import { inviteLink, roomFromSearch, roomSocketUrl, stripRoomParam, whatsappUrl } from "./share";
 
@@ -31,6 +32,12 @@ describe("settings", () => {
     expect(s.difficulty).toBe(fb.difficulty);
     expect(s.lang).toBe(fb.lang);
     expect(s.clientSeed).toBe(fb.clientSeed);
+  });
+  it("allows up to 6 players for the hex board", () => {
+    const fb = defaultSettings();
+    expect(parseSettings(JSON.stringify({ players: 6 }), fb).players).toBe(6);
+    expect(parseSettings(JSON.stringify({ players: 7 }), fb).players).toBe(fb.players);
+    expect([2, 4, 5, 6].map(boardFor)).toEqual(["classic", "classic", "hex", "hex"]);
   });
   it("keeps valid saved values", () => {
     const s = parseSettings(JSON.stringify({ players: 2, difficulty: "hard", lang: "ne", quick: true, sound: false }), fb);

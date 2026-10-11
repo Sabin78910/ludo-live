@@ -1,5 +1,5 @@
 import { chooseMove, scoreMoves, seededRandom, threatsTo, DIFFICULTIES } from "./bot";
-import { BASE, FINISH, applyMove, applyRoll, autoMove, createGame, legalMoves, seatColors, type GameState } from "./rules";
+import { BASE, BOARDS, FINISH, applyMove, applyRoll, autoMove, createGame, legalMoves, seatColors, type BoardId, type GameState } from "./rules";
 
 const two = [
   { color: "red" as const, name: "A" },
@@ -85,21 +85,22 @@ describe("seededRandom", () => {
 });
 
 /** Play a full bot-vs-bot game with seeded dice; checks rule invariants on every step. */
-function simulate(players: number, seed: number, difficulty: "easy" | "normal" | "hard", quick = false) {
+function simulate(players: number, seed: number, difficulty: "easy" | "normal" | "hard", quick = false, board: BoardId = "classic") {
+  const fin = BOARDS[board].finish;
   const rand = seededRandom(seed);
-  let g = createGame(seatColors(players).map((color, i) => ({ color, name: `B${i}` })), { mode: quick ? "quick" : "classic" });
+  let g = createGame(seatColors(players, board).map((color, i) => ({ color, name: `B${i}` })), { mode: quick ? "quick" : "classic", board });
   let steps = 0;
   while (g.phase !== "over" && steps < 20000) {
     steps++;
-    const before = g.tokens.flat().filter((p) => p === FINISH).length;
+    const before = g.tokens.flat().filter((p) => p === fin).length;
     g = applyRoll(g, 1 + Math.floor(rand() * 6)).state;
     if (g.phase === "move") {
       const token = autoMove(g) ?? chooseMove(g, difficulty, rand);
       g = applyMove(g, token).state;
     }
-    const after = g.tokens.flat().filter((p) => p === FINISH).length;
+    const after = g.tokens.flat().filter((p) => p === fin).length;
     expect(after).toBeGreaterThanOrEqual(before); // finished tokens never leave home
-    for (const t of g.tokens.flat()) expect(t >= -1 && t <= FINISH).toBe(true);
+    for (const t of g.tokens.flat()) expect(t >= -1 && t <= fin).toBe(true);
   }
   return { g, steps };
 }
@@ -115,6 +116,11 @@ describe("full simulated games", () => {
     expect(g.phase).toBe("over");
     expect([...g.finished].sort()).toEqual([...Array(players).keys()]);
     expect(g.rolls).toHaveLength(g.rollCount);
+  });
+  it.each([5, 6])("%i-player hex games finish with a complete winner order", (players) => {
+    const { g } = simulate(players, players, "normal", false, "hex");
+    expect(g.phase).toBe("over");
+    expect([...g.finished].sort()).toEqual([...Array(players).keys()]);
   });
   it("quick games end as soon as one token gets home", () => {
     const { g } = simulate(4, 9, "hard", true);

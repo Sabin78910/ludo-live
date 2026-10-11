@@ -2,9 +2,10 @@
 // No DOM, no timers, no randomness: dice values are passed in, so the server stays authoritative and every
 // roll can come from the provably fair dealer in fair.ts.
 
-export type Color = "red" | "green" | "yellow" | "blue";
-/** Clockwise seat order around the board. */
-export const COLORS: readonly Color[] = ["red", "green", "yellow", "blue"];
+export type ClassicColor = "red" | "green" | "yellow" | "blue";
+export type Color = ClassicColor | "orange" | "purple";
+/** Clockwise seat order around the classic board. */
+export const COLORS: readonly ClassicColor[] = ["red", "green", "yellow", "blue"];
 
 export const TRACK_LEN = 52;
 /** Last progress value on the shared track (the cell just before a player's home column). */
@@ -15,10 +16,55 @@ export const BASE = -1;
 export const TOKENS_PER_PLAYER = 4;
 
 /** Index on the 52-cell track where each colour enters (also a safe cell). */
-export const START_OFFSET: Record<Color, number> = { red: 0, green: 13, yellow: 26, blue: 39 };
+export const START_OFFSET: Record<ClassicColor, number> = { red: 0, green: 13, yellow: 26, blue: 39 };
 /** Star cells: 8 steps after each start. Start cells and stars are safe from capture. */
 export const STAR_INDICES: readonly number[] = [8, 21, 34, 47];
 export const SAFE_INDICES: ReadonlySet<number> = new Set([0, 13, 26, 39, ...STAR_INDICES]);
+
+/** Everything that differs between board shapes: seats, track length, starts and stars. */
+export interface BoardSpec {
+  id: BoardId;
+  /** Clockwise seat order. */
+  colors: readonly Color[];
+  trackLen: number;
+  /** Last progress value on the shared track; the next 5 are the home column, then the centre (`finish`). */
+  lastTrack: number;
+  finish: number;
+  startOffset: Partial<Record<Color, number>>;
+  stars: readonly number[];
+  /** Start cells and stars are safe from capture. */
+  safe: ReadonlySet<number>;
+}
+
+export type BoardId = "classic" | "hex";
+
+const CLASSIC: BoardSpec = {
+  id: "classic",
+  colors: COLORS,
+  trackLen: TRACK_LEN,
+  lastTrack: LAST_TRACK,
+  finish: FINISH,
+  startOffset: START_OFFSET,
+  stars: STAR_INDICES,
+  safe: SAFE_INDICES,
+};
+
+/** Six arms of 13 cells (78-cell track), stars 8 steps after each start. */
+const HEX_COLORS: readonly Color[] = ["red", "orange", "green", "yellow", "blue", "purple"];
+const HEX_STARTS = HEX_COLORS.map((_, i) => i * 13);
+const HEX_STARS = HEX_STARTS.map((s) => s + 8);
+const HEX: BoardSpec = {
+  id: "hex",
+  colors: HEX_COLORS,
+  trackLen: 78,
+  lastTrack: 76, // a full lap minus the start cell and the one before it, where the home column begins
+  finish: 82,
+  startOffset: Object.fromEntries(HEX_COLORS.map((c, i) => [c, HEX_STARTS[i]])),
+  stars: HEX_STARS,
+  safe: new Set([...HEX_STARTS, ...HEX_STARS]),
+};
+
+export const BOARDS: Record<BoardId, BoardSpec> = { classic: CLASSIC, hex: HEX };
 
 export type Mode = "classic" | "quick";
 
@@ -36,6 +82,8 @@ export interface RollRecord {
 
 export interface GameState {
   mode: Mode;
+  /** Board shape; absent means the classic 4-player board. */
+  board?: BoardId;
   players: Player[];
   /** tokens[playerIndex][tokenIndex] = progress (-1 base, 0..50 track, 51..55 home column, 56 finished). */
   tokens: number[][];
@@ -70,20 +118,30 @@ export interface Step {
 export interface GameOptions {
   mode?: Mode;
   tokensPerPlayer?: number;
+  board?: BoardId;
+}
+
+export function specOf(state: { board?: BoardId }): BoardSpec {
+  return BOARDS[state.board ?? "classic"];
 }
 
 export class RuleError extends Error {}
 
 export function createGame(players: Player[], opts: GameOptions = {}): GameState {
-  if (players.length < 2 || players.length > 4) throw new RuleError("Ludo needs 2 to 4 players");
+  const spec = BOARDS[opts.board ?? "classic"];
+  if (players.length < 2 || players.length > spec.colors.length) {
+    throw new RuleError(`Ludo needs 2 to ${spec.colors.length} players`);
+  }
   const colors = new Set(players.map((p) => p.color));
   if (colors.size !== players.length) throw new RuleError("Each player needs a different colour");
+  if (players.some((p) => !spec.colors.includes(p.color))) throw new RuleError("Colour is not on this board");
   const mode = opts.mode ?? "classic";
   const n = opts.tokensPerPlayer ?? TOKENS_PER_PLAYER;
   // Quick mode: every player starts with one token already on its start cell.
   const tokens = players.map(() => Array.from({ length: n }, (_, i) => (mode === "quick" && i === 0 ? 0 : BASE)));
   return {
     mode,
+    ...(spec.id === "classic" ? {} : { board: spec.id }),
     players: players.map((p) => ({ ...p })),
     tokens,
     current: 0,
@@ -97,38 +155,41 @@ export function createGame(players: Player[], opts: GameOptions = {}): GameState
 }
 
 /** Seat colours for a table of n players: 2 players sit opposite each other. */
-export function seatColors(n: number): Color[] {
-  if (n === 2) return ["red", "yellow"];
-  if (n === 3) return ["red", "green", "yellow"];
-  if (n === 4) return [...COLORS];
-  throw new RuleError("Ludo needs 2 to 4 players");
+export function seatColors(n: number, board: BoardId = "classic"): Color[] {
+  const all = BOARDS[board].colors;
+  if (n < 2 || n > all.length) throw new RuleError(`Ludo needs 2 to ${all.length} players`);
+  if (board === "classic") return n === 2 ? ["red", "yellow"] : n === 3 ? ["red", "green", "yellow"] : [...all];
+  // Hex: spread the seats evenly around the six arms.
+  const picks = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] }[n]!;
+  return picks.map((i) => all[i]);
 }
 
-/** Absolute track index (0..51) of a token, or null when it is in base, the home column or finished. */
-export function trackIndex(color: Color, progress: number): number | null {
-  if (progress < 0 || progress > LAST_TRACK) return null;
-  return (START_OFFSET[color] + progress) % TRACK_LEN;
+/** Absolute track index of a token, or null when it is in base, the home column or finished. */
+export function trackIndex(color: Color, progress: number, spec: BoardSpec = CLASSIC): number | null {
+  if (progress < 0 || progress > spec.lastTrack) return null;
+  return ((spec.startOffset[color] ?? 0) + progress) % spec.trackLen;
 }
 
-export function isSafeIndex(index: number): boolean {
-  return SAFE_INDICES.has(index);
+export function isSafeIndex(index: number, spec: BoardSpec = CLASSIC): boolean {
+  return spec.safe.has(index);
 }
 
 /** Where a token at `progress` lands with `roll`, or null if it cannot move. */
-export function target(progress: number, roll: number): number | null {
+export function target(progress: number, roll: number, spec: BoardSpec = CLASSIC): number | null {
   if (roll < 1 || roll > 6) return null;
   if (progress === BASE) return roll === 6 ? 0 : null;
-  if (progress >= FINISH) return null;
+  if (progress >= spec.finish) return null;
   const to = progress + roll;
-  return to > FINISH ? null : to; // exact roll needed to finish
+  return to > spec.finish ? null : to; // exact roll needed to finish
 }
 
 export function legalMoves(state: GameState): number[] {
   if (state.phase !== "move" || state.dice === null) return [];
   const mine = state.tokens[state.current];
+  const spec = specOf(state);
   const out: number[] = [];
   mine.forEach((p, i) => {
-    if (target(p, state.dice!) !== null) out.push(i);
+    if (target(p, state.dice!, spec) !== null) out.push(i);
   });
   return out;
 }
@@ -224,7 +285,7 @@ export function applyMove(state: GameState, token: number): Step {
   const me = state.current;
   const from = state.tokens[me]?.[token];
   if (from === undefined) throw new RuleError("No such token");
-  const to = target(from, state.dice);
+  const to = target(from, state.dice, specOf(state));
   if (to === null) throw new RuleError("That token cannot move");
   const s = clone(state);
   const events: GameEvent[] = [];
@@ -236,12 +297,13 @@ export function applyMove(state: GameState, token: number): Step {
 
   let captured = false;
   const color = s.players[me].color;
-  const cell = trackIndex(color, to);
-  if (cell !== null && !isSafeIndex(cell)) {
+  const spec = specOf(s);
+  const cell = trackIndex(color, to, spec);
+  if (cell !== null && !isSafeIndex(cell, spec)) {
     s.players.forEach((p, other) => {
       if (other === me) return;
       s.tokens[other].forEach((op, ti) => {
-        if (trackIndex(p.color, op) === cell) {
+        if (trackIndex(p.color, op, spec) === cell) {
           s.tokens[other][ti] = BASE;
           captured = true;
           events.push({ type: "capture", player: me, victim: other, token: ti, cell });
@@ -250,7 +312,7 @@ export function applyMove(state: GameState, token: number): Step {
     });
   }
 
-  const reachedHome = to === FINISH;
+  const reachedHome = to === spec.finish;
   if (reachedHome) events.push({ type: "home", player: me, token });
 
   if (reachedHome && s.mode === "quick") {
@@ -259,7 +321,7 @@ export function applyMove(state: GameState, token: number): Step {
     endGame(s, events);
     return { state: s, events };
   }
-  if (s.tokens[me].every((p) => p === FINISH)) {
+  if (s.tokens[me].every((p) => p === spec.finish)) {
     s.finished.push(me);
     events.push({ type: "finish", player: me, place: s.finished.length });
     if (active(s).length <= 1) {
