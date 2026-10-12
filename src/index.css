@@ -1106,3 +1106,104 @@ tr.bad td {
     transform: none;
   }
 }
+
+/* Earned cosmetics: drawn in CSS only. Skins change looks, never the roll. */
+html[data-board="midnight"] {
+  --board: #1b2447;
+  --yard: #263262;
+  --cell: #2e3a73;
+  --cell-line: #46539a;
+  --star: #c9d0f2;
+}
+html[data-board="sunset"] {
+  --board: #f8d9b8;
+  --yard: #fff1e0;
+  --cell: #fff1e0;
+  --cell-line: #e0a878;
+  --star: #b3622f;
+}
+html[data-board="forest"] {
+  --board: #d5e6cf;
+  --yard: #f1f8ee;
+  --cell: #f1f8ee;
+  --cell-line: #9bbd92;
+  --star: #4d7a47;
+}
+html[data-dice="obsidian"] .face,
+.sw-dice-obsidian {
+  background: radial-gradient(circle at 30% 25%, #4a4f66, #1a1d2e 70%, #0b0d18);
+}
+html[data-dice="amber"] .face,
+.sw-dice-amber {
+  background: radial-gradient(circle at 30% 25%, #ffe9a8, #f5b942 70%, #c98712);
+}
+html[data-dice="jade"] .face,
+.sw-dice-jade {
+  background: radial-gradient(circle at 30% 25%, #d9fbe8, #6fd1a0 70%, #2f9a6d);
+}
+html[data-dice="obsidian"] .pip {
+  background: radial-gradient(circle at 35% 35%, #fff, #c9d0f2);
+}
+html[data-token="diamond"] .token-body {
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  border-radius: 0;
+}
+html[data-token="square"] .token-body {
+  clip-path: inset(6% round 22%);
+  border-radius: 22%;
+}
+html[data-token="star"] .token-body {
+  clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 36%);
+  border-radius: 0;
+}
+
+.collection {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+.skins {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.skin {
+  display: grid;
+  gap: 6px;
+  justify-items: start;
+  padding: 12px;
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.skin.locked .swatch {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.skin progress {
+  width: 100%;
+  height: 8px;
+  accent-color: var(--gold);
+}
+.swatch {
+  width: 40px;
+  height: 40px;
+  background: var(--sw, #e9e9f2);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+.sw-board-classic { --sw: #f6f1e6; }
+.sw-board-midnight { --sw: #1b2447; }
+.sw-board-sunset { --sw: #f8d9b8; }
+.sw-board-forest { --sw: #d5e6cf; }
+.sw-token-round { --sw: var(--red); border-radius: 50%; }
+.sw-token-diamond { --sw: var(--red); clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); border: 0; }
+.sw-token-square { --sw: var(--red); border-radius: 22%; }
+.sw-token-star {
+  --sw: var(--red);
+  clip-path: polygon(50% 0, 62% 36%, 100% 38%, 70% 60%, 80% 98%, 50% 76%, 20% 98%, 30% 60%, 0 38%, 38% 36%);
+  border: 0;
+}

@@ -29,3 +29,18 @@ describe("App", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 });
+
+describe("Collection", () => {
+  beforeEach(() => localStorage.clear());
+
+  it("shows locked skins with distance, and equips an unlocked one", async () => {
+    localStorage.setItem("ludo-live.progress", JSON.stringify({ games: 3, wins: 0, streak: 0, bestStreak: 0 }));
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Collection" }));
+    expect(screen.getByText("Win 5 games")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Midnight: Use" }));
+    expect(document.documentElement.dataset.board).toBe("midnight");
+    expect(screen.getByRole("button", { name: "Midnight: In use" })).toHaveAttribute("aria-pressed", "true");
+    expect(JSON.parse(localStorage.getItem("ludo-live.equipped")!).board).toBe("midnight");
+  });
+});

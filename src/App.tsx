@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { DIFFICULTIES, type Difficulty } from "./engine/bot";
 import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
+import { applyEquipped, loadEquipped, loadProgress, saveEquipped, type Equipped, type Skin } from "./game/cosmetics";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
 import { loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { Collection } from "./ui/Collection";
 import { GameView } from "./ui/GameView";
 import { OnlineRoomScreen } from "./ui/Online";
 import { Verify, type Proof } from "./ui/Verify";
@@ -19,6 +21,7 @@ type Screen =
   | { name: "setup"; mode: "bots" | "local" }
   | { name: "local"; seats: LocalSeat[]; quick: boolean; key: number }
   | { name: "online"; code: string; create: boolean }
+  | { name: "collection" }
   | { name: "verify"; proof: Proof; back: Screen };
 
 export default function App() {
@@ -29,6 +32,7 @@ export default function App() {
     return code && WS_URL ? { name: "online", code, create: false } : { name: "home" };
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
+  const [equipped, setEquipped] = useState<Equipped>(() => loadEquipped(loadProgress()));
   const [rules, setRules] = useState(false);
   const { canInstall, install } = useInstallPrompt();
   const lang = settings.lang;
@@ -45,6 +49,8 @@ export default function App() {
     document.title = t(lang, "appName");
   }, [lang]);
 
+  useEffect(() => applyEquipped(equipped), [equipped]);
+
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     const on = () => setReduced(mq.matches);
@@ -60,6 +66,23 @@ export default function App() {
 
   const tap = () => settings.sound && play("tap");
   const myName = settings.name.trim() || t(lang, "you");
+
+  if (screen.name === "collection") {
+    return (
+      <Collection
+        progress={loadProgress()}
+        equipped={equipped}
+        lang={lang}
+        onEquip={(skin: Skin) => {
+          tap();
+          const next = { ...equipped, [skin.kind]: skin.id };
+          saveEquipped(next);
+          setEquipped(next);
+        }}
+        onBack={() => setScreen({ name: "home" })}
+      />
+    );
+  }
 
   if (screen.name === "verify") return <Verify proof={screen.proof} lang={lang} onBack={() => setScreen(screen.back)} />;
 
@@ -225,6 +248,9 @@ export default function App() {
         </div>
       </nav>
       <footer className="foot">
+        <button type="button" className="btn small ghost" onClick={() => (tap(), setScreen({ name: "collection" }))}>
+          {t(lang, "collection")}
+        </button>
         <button type="button" className="btn small ghost" onClick={() => setRules(true)}>
           {t(lang, "rules")}
         </button>

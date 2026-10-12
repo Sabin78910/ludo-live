@@ -4,6 +4,7 @@ import { EMOJIS } from "../engine/protocol";
 import { legalMoves, type Color } from "../engine/rules";
 import { ROLL_MS, buildFrames, eventToast } from "../game/anim";
 import type { Controller } from "../game/controller";
+import { recordFinishedGame } from "../game/cosmetics";
 import { t, type Lang, type StringKey } from "../game/i18n";
 import { play, vibrate, type Sfx } from "../game/sound";
 import type { Reaction } from "../online/useOnlineRoom";
@@ -130,6 +131,11 @@ export function GameView(props: GameViewProps) {
   }, [secondsLeft, ctl.canAct]);
 
   const over = state.phase === "over";
+  const earnsProgress = ctl.local.some(Boolean) && !ctl.local.every(Boolean); // pass & play can't farm unlocks
+  const wonByMe = over && !!ctl.local[state.finished[0]];
+  useEffect(() => {
+    if (over && earnsProgress) recordFinishedGame(wonByMe);
+  }, [over]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (over) {
       const id = setTimeout(() => {
