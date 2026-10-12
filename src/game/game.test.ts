@@ -18,6 +18,15 @@ describe("i18n", () => {
   });
 });
 
+describe("settings theme", () => {
+  it("defaults to auto and accepts only known themes", () => {
+    const fb = defaultSettings();
+    expect(fb.theme).toBe("auto");
+    expect(parseSettings(JSON.stringify({ theme: "light" }), fb).theme).toBe("light");
+    expect(parseSettings(JSON.stringify({ theme: "neon" }), fb).theme).toBe("auto");
+  });
+});
+
 describe("settings", () => {
   const fb = defaultSettings();
   it("detects Nepali from the browser languages", () => {

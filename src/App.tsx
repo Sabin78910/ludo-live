@@ -4,10 +4,11 @@ import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
-import { loadSettings, saveSettings, type Settings } from "./game/settings";
+import { loadSettings, saveSettings, THEMES, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { Board } from "./ui/Board";
 import { GameView } from "./ui/GameView";
 import { OnlineRoomScreen } from "./ui/Online";
 import { Verify, type Proof } from "./ui/Verify";
@@ -20,6 +21,16 @@ type Screen =
   | { name: "local"; seats: LocalSeat[]; quick: boolean; key: number }
   | { name: "online"; code: string; create: boolean }
   | { name: "verify"; proof: Proof; back: Screen };
+
+const PREVIEW_COLORS = seatColors(4);
+const PREVIEW_TOKENS = [
+  [5, 14, -1, -1],
+  [20, -1, -1, -1],
+  [31, 40, -1, -1],
+  [8, -1, -1, -1],
+];
+const NONE = new Set<number>();
+const noop = () => {};
 
 export default function App() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
@@ -44,6 +55,11 @@ export default function App() {
     document.documentElement.lang = lang === "ne" ? "ne" : "en";
     document.title = t(lang, "appName");
   }, [lang]);
+
+  useEffect(() => {
+    if (settings.theme === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = settings.theme;
+  }, [settings.theme]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -153,13 +169,22 @@ export default function App() {
   }
 
   const code = normalizeRoomCode(joinCode);
+  const themeName = t(lang, ("theme" + settings.theme[0].toUpperCase() + settings.theme.slice(1)) as StringKey);
   return (
     <main className="screen home">
       <div className="top-row">
-        <button type="button" className="btn small ghost" onClick={() => update({ lang: lang === "en" ? "ne" : "en" })}>
-          {t(lang, "language")}
+        <button type="button" className="btn small ghost" aria-label={t(lang, "language")} onClick={() => update({ lang: lang === "en" ? "ne" : "en" })}>
+          🌐 {t(lang, "langName")}
         </button>
         <div className="toggles">
+          <button
+            type="button"
+            className="btn small ghost"
+            onClick={() => update({ theme: THEMES[(THEMES.indexOf(settings.theme) + 1) % THEMES.length] })}
+            aria-label={t(lang, "theme", { v: themeName })}
+          >
+            {settings.theme === "dark" ? "🌙" : settings.theme === "light" ? "☀️" : "🌗"} {themeName}
+          </button>
           <button type="button" className="icon-btn" aria-pressed={settings.sound} onClick={() => update({ sound: !settings.sound })} aria-label={t(lang, "sound")}>
             {settings.sound ? "🔊" : "🔇"}
           </button>
@@ -169,6 +194,19 @@ export default function App() {
         </div>
       </div>
       <div className="hero">
+        <div className="hero-board" role="img" aria-label={t(lang, "boardPreview")}>
+          <Board
+            colors={PREVIEW_COLORS}
+            tokens={PREVIEW_TOKENS}
+            movable={NONE}
+            current={0}
+            onPick={noop}
+            rotation={0}
+            hopping={null}
+            bursts={[]}
+            labelFor={() => ""}
+          />
+        </div>
         <img src="./icon.svg" alt="" width="96" height="96" className="hero-icon" />
         <h1>{t(lang, "appName")}</h1>
         <p className="muted">{t(lang, "tagline")}</p>

@@ -3,8 +3,12 @@ import type { Difficulty } from "../engine/bot";
 import { randomHex } from "../engine/fair";
 import type { Lang } from "./i18n";
 
+export type Theme = "auto" | "light" | "dark";
+export const THEMES: readonly Theme[] = ["auto", "light", "dark"];
+
 export interface Settings {
   lang: Lang;
+  theme: Theme;
   sound: boolean;
   haptics: boolean;
   name: string;
@@ -20,6 +24,7 @@ const KEY = "ludo-live.settings";
 export function defaultSettings(lang: Lang = "en"): Settings {
   return {
     lang,
+    theme: "auto",
     sound: true,
     haptics: true,
     name: "",
@@ -40,6 +45,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
     const o = JSON.parse(raw) as Partial<Settings>;
     return {
       lang: o.lang === "ne" || o.lang === "en" ? o.lang : fallback.lang,
+      theme: THEMES.includes(o.theme as Theme) ? (o.theme as Theme) : fallback.theme,
       sound: typeof o.sound === "boolean" ? o.sound : fallback.sound,
       haptics: typeof o.haptics === "boolean" ? o.haptics : fallback.haptics,
       name: typeof o.name === "string" ? o.name.slice(0, 16) : fallback.name,

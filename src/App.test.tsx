@@ -13,10 +13,27 @@ describe("App", () => {
     expect(screen.getByText("Online coming soon")).toBeInTheDocument();
   });
 
-  it("switches to Nepali", async () => {
+  it("shows the current language in its own script and switches to Nepali", async () => {
     render(<App />);
-    await userEvent.click(screen.getByRole("button", { name: "भाषा: नेपाली" }));
+    expect(screen.getByRole("button", { name: /Language: English/ })).toHaveTextContent("English");
+    await userEvent.click(screen.getByRole("button", { name: /Language: English/ }));
     expect(screen.getByRole("heading", { name: "लुडो लाइभ" })).toBeInTheDocument();
+  });
+
+  it("cycles the theme and applies it to the document", async () => {
+    render(<App />);
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+    await userEvent.click(screen.getByRole("button", { name: /Theme: Auto/ }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+    await userEvent.click(screen.getByRole("button", { name: /Theme: Light/ }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    await userEvent.click(screen.getByRole("button", { name: /Theme: Dark/ }));
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+  });
+
+  it("shows a board preview on the home screen", () => {
+    const { container } = render(<App />);
+    expect(container.querySelector(".hero-board .board")).not.toBeNull();
   });
 
   it("starts a bot game with a fair-dice hash and a dice button", async () => {
