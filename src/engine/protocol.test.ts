@@ -46,3 +46,22 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg(42)).toBeNull();
   });
 });
+
+describe("parseClientMsg signal", () => {
+  const sig = (o: object) => JSON.stringify({ t: "signal", to: 1, kind: "offer", data: "sdp", ...o });
+  it("accepts offer, answer and ice", () => {
+    for (const kind of ["offer", "answer", "ice"]) expect(parseClientMsg(sig({ kind }))).toEqual({ t: "signal", to: 1, kind, data: "sdp" });
+  });
+  it("accepts payloads above the general limit but not above the signal limit", () => {
+    expect(parseClientMsg(sig({ data: "x".repeat(5000) }))).not.toBeNull();
+    expect(parseClientMsg(sig({ data: "x".repeat(6001) }))).toBeNull();
+    expect(parseClientMsg(JSON.stringify({ t: "emoji", emoji: "🔥", pad: "x".repeat(3000) }))).toBeNull();
+  });
+  it("rejects bad shapes", () => {
+    expect(parseClientMsg(sig({ kind: "bye" }))).toBeNull();
+    expect(parseClientMsg(sig({ to: "1" }))).toBeNull();
+    expect(parseClientMsg(sig({ to: 1.5 }))).toBeNull();
+    expect(parseClientMsg(sig({ data: "" }))).toBeNull();
+    expect(parseClientMsg(sig({ data: 5 }))).toBeNull();
+  });
+});

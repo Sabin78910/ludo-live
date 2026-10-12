@@ -1,5 +1,5 @@
 // WebSocket client for an online room with automatic reconnect + rejoin token.
-import type { ClientMsg, ErrorCode, RoomView, ServerMsg } from "../engine/protocol";
+import type { ClientMsg, ErrorCode, RoomView, ServerMsg, SignalKind } from "../engine/protocol";
 
 export type ConnStatus = "connecting" | "open" | "reconnecting" | "closed";
 
@@ -7,6 +7,7 @@ export interface RoomHandlers {
   onState(room: RoomView, receivedAt: number): void;
   onWelcome?(seat: number, token: string): void;
   onEmoji?(seat: number, emoji: string): void;
+  onSignal?(from: number, kind: SignalKind, data: string): void;
   onError?(code: ErrorCode, message: string): void;
   onStatus?(status: ConnStatus): void;
 }
@@ -100,6 +101,9 @@ export class RoomClient {
         break;
       case "emoji":
         this.handlers.onEmoji?.(msg.seat, msg.emoji);
+        break;
+      case "signal":
+        this.handlers.onSignal?.(msg.from, msg.kind, msg.data);
         break;
       case "error":
         this.handlers.onError?.(msg.code, msg.message);

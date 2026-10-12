@@ -21,6 +21,8 @@ export const TAKEOVER_MS = 30_000;
 export const BOT_DELAY_MS = 1_000;
 export const STEP_MS = 160;
 export const EMOJI_GAP_MS = 1_200;
+export const SIGNAL_WINDOW_MS = 10_000;
+export const SIGNAL_MAX_PER_WINDOW = 60;
 /** Rooms with nobody connected are forgotten after this long. */
 export const IDLE_EXPIRY_MS = 6 * 60 * 60 * 1000;
 
@@ -33,6 +35,9 @@ export interface SeatState {
   bot: boolean;
   takeover: boolean;
   lastEmojiAt: number;
+  /** Voice signalling rate limit; absent in rooms stored before voice existed. */
+  signalWindowAt?: number;
+  signalCount?: number;
 }
 
 export interface RoomData {
@@ -213,6 +218,19 @@ export class RoomCore {
     if (!s || now - s.lastEmojiAt < EMOJI_GAP_MS) return false;
     s.lastEmojiAt = now;
     return true;
+  }
+
+  /** Whether `from` may relay a voice signal to `to` now: both real, connected seats in this room, within the rate limit. */
+  signal(from: number, to: number, now: number): boolean {
+    const a = this.data.seats[from];
+    const b = this.data.seats[to];
+    if (!a || !b || from === to || b.bot || !b.connected) return false;
+    if (now - (a.signalWindowAt ?? 0) >= SIGNAL_WINDOW_MS) {
+      a.signalWindowAt = now;
+      a.signalCount = 0;
+    }
+    a.signalCount = (a.signalCount ?? 0) + 1;
+    return a.signalCount <= SIGNAL_MAX_PER_WINDOW;
   }
 
   private async doRoll(now: number): Promise<void> {

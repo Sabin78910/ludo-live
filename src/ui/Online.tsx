@@ -3,6 +3,7 @@ import { t, type Lang } from "../game/i18n";
 import { inviteLink, whatsappUrl } from "../game/share";
 import { useOnlineRoom } from "../online/useOnlineRoom";
 import { GameView } from "./GameView";
+import { VoiceControls, useVoice } from "./Voice";
 import type { Proof } from "./Verify";
 
 export interface OnlineProps {
@@ -21,7 +22,8 @@ export interface OnlineProps {
 }
 
 export function OnlineRoomScreen(p: OnlineProps) {
-  const { room, status, error, reactions, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
+  const { room, status, error, reactions, send, controller, onSignal } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
+  const voice = useVoice(room, send, onSignal);
   const [quick, setQuick] = useState(p.quick);
   const [copied, setCopied] = useState(false);
   const lang = p.lang;
@@ -66,6 +68,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
         playerOfSeat={(seat) => room.playerSeats.indexOf(seat)}
         onEmoji={(emoji) => send({ t: "emoji", emoji })}
         banner={banner}
+        voice={<VoiceControls lang={lang} room={room} voice={voice} />}
       />
     );
   }
@@ -155,6 +158,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
           ) : (
             <p className="muted">{room.seats.length < 2 ? t(lang, "waitingPlayers") : t(lang, "waitingHost")}</p>
           )}
+          <VoiceControls lang={lang} room={room} voice={voice} />
           {error && <p className="verdict bad">{error.message}</p>}
           <p className="muted small">
             🔒 {t(lang, "fairChip")}: <code>{room.serverSeedHash.slice(0, 16)}…</code>

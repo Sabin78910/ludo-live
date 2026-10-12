@@ -112,6 +112,15 @@ export class LudoRoom implements DurableObject {
       case "move":
         result = room.move(seat, msg.token, now);
         break;
+      case "signal":
+        // Relayed only to the connected socket of the addressed seat in this room, never broadcast.
+        if (room.signal(seat, msg.to, now)) {
+          const target = room.data.seats[msg.to].token;
+          for (const other of this.state.getWebSockets()) {
+            if ((other.deserializeAttachment() as Attachment).token === target) send(other, { t: "signal", from: seat, kind: msg.kind, data: msg.data });
+          }
+        }
+        return;
       case "emoji":
         if (room.emoji(seat, now)) this.broadcastRaw({ t: "emoji", seat, emoji: msg.emoji });
         return;

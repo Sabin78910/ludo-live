@@ -34,13 +34,14 @@ describe("RoomClient", () => {
     const sockets: FakeSocket[] = [];
     const onState = vi.fn();
     const onError = vi.fn();
-    const c = new RoomClient("ws://x/room/ABCDEF", "ABCDEF", { name: "A", clientSeed: "s1", create }, { onState, onError }, () => {
+    const onSignal = vi.fn();
+    const c = new RoomClient("ws://x/room/ABCDEF", "ABCDEF", { name: "A", clientSeed: "s1", create }, { onState, onError, onSignal }, () => {
       const s = new FakeSocket();
       sockets.push(s);
       return s;
     });
     c.connect();
-    return { c, sockets, onState, onError };
+    return { c, sockets, onState, onError, onSignal };
   }
 
   it("says hello with create on first connect and stores the rejoin token", () => {
@@ -71,6 +72,13 @@ describe("RoomClient", () => {
     expect(onError).toHaveBeenCalledWith("not_found", "Room not found");
     vi.advanceTimersByTime(20_000);
     expect(sockets).toHaveLength(1);
+  });
+
+  it("delivers signals to the handler", () => {
+    const { sockets, onSignal } = make();
+    sockets[0].open();
+    sockets[0].recv({ t: "signal", from: 2, kind: "offer", data: "sdp" });
+    expect(onSignal).toHaveBeenCalledWith(2, "offer", "sdp");
   });
 
   it("ignores garbage messages", () => {

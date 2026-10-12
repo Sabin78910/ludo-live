@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { tokenPosition, TRACK } from "../engine/board";
 import { EMOJIS } from "../engine/protocol";
 import { legalMoves, type Color } from "../engine/rules";
@@ -25,6 +25,8 @@ export interface GameViewProps {
   playerOfSeat?(seat: number): number;
   onEmoji?(emoji: string): void;
   banner?: string | null;
+  /** Optional voice controls (online rooms). */
+  voice?: ReactNode;
 }
 
 export function GameView(props: GameViewProps) {
@@ -238,6 +240,8 @@ export function GameView(props: GameViewProps) {
           {canRoll && <span>{t(lang, "tapToRoll")}</span>}
         </div>
       </div>
+
+      {props.voice}
 
       {props.onEmoji && (
         <div className="emoji-bar" aria-label={t(lang, "reactions")}>

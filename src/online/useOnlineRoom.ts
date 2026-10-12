@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ClientMsg, ErrorCode, RoomView } from "../engine/protocol";
+import type { ClientMsg, ErrorCode, RoomView, SignalKind } from "../engine/protocol";
 import { animDuration } from "../game/anim";
 import type { Controller } from "../game/controller";
 import { RoomClient, type ConnStatus } from "./client";
@@ -17,6 +17,8 @@ export interface OnlineRoom {
   reactions: Reaction[];
   send(msg: ClientMsg): void;
   controller: Controller | null;
+  /** Register the single handler for incoming voice signals (pass null to remove). */
+  onSignal(fn: ((from: number, kind: SignalKind, data: string) => void) | null): void;
 }
 
 export function useOnlineRoom(url: string, code: string, name: string, clientSeed: string, create: boolean, reduced: boolean): OnlineRoom {
@@ -30,6 +32,7 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
   const prevRef = useRef<{ seq: number; tokens: number[][] | null }>({ seq: -1, tokens: null });
   const [prevTokens, setPrevTokens] = useState<number[][] | null>(null);
   const clientRef = useRef<RoomClient | null>(null);
+  const signalRef = useRef<Parameters<OnlineRoom["onSignal"]>[0]>(null);
 
   useEffect(() => {
     let rid = 0;
@@ -52,6 +55,7 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
       onError(code, message) {
         setError({ code, message });
       },
+      onSignal: (from, kind, data) => signalRef.current?.(from, kind, data),
       onStatus: setStatus,
     });
     clientRef.current = c;
@@ -96,5 +100,5 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
 
   // The animation lock is time based, so it is applied on every render (force() re-renders when it ends).
   const ctl = controller && { ...controller, canAct: controller.canAct && Date.now() >= busyUntil };
-  return { room, status, error, reactions, send, controller: ctl };
+  return { room, status, error, reactions, send, controller: ctl, onSignal: (fn) => void (signalRef.current = fn) };
 }

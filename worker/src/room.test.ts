@@ -1,6 +1,6 @@
 import { verifyRolls } from "../../src/engine/fair";
 import { FINISH } from "../../src/engine/rules";
-import { BOT_DELAY_MS, IDLE_EXPIRY_MS, RoomCore, TAKEOVER_MS, TURN_MS } from "./room";
+import { BOT_DELAY_MS, IDLE_EXPIRY_MS, RoomCore, SIGNAL_MAX_PER_WINDOW, SIGNAL_WINDOW_MS, TAKEOVER_MS, TURN_MS } from "./room";
 
 const SEED = "f".repeat(64);
 let tokenN = 0;
@@ -204,5 +204,29 @@ describe("RoomCore housekeeping", () => {
     await room.roll(0, 1);
     const copy = new RoomCore(JSON.parse(JSON.stringify(room.data)));
     expect(copy.view(0, 2)).toEqual(room.view(0, 2));
+  });
+});
+
+describe("RoomCore voice signalling", () => {
+  it("relays between connected seats only", async () => {
+    const { room } = await lobby(3);
+    expect(room.signal(0, 1, 0)).toBe(true);
+    expect(room.signal(0, 0, 0)).toBe(false); // not to yourself
+    expect(room.signal(0, 5, 0)).toBe(false); // no such seat (spectators have none)
+    expect(room.signal(7, 1, 0)).toBe(false); // sender without a seat
+    room.disconnect(2, 0);
+    expect(room.signal(0, 2, 0)).toBe(false);
+  });
+  it("never relays to bots", async () => {
+    const { room } = await lobby(1);
+    room.addBot(0, 0);
+    expect(room.signal(0, 1, 0)).toBe(false);
+  });
+  it("rate limits per sender and recovers after the window", async () => {
+    const { room } = await lobby(2);
+    for (let i = 0; i < SIGNAL_MAX_PER_WINDOW; i++) expect(room.signal(0, 1, 100)).toBe(true);
+    expect(room.signal(0, 1, 100)).toBe(false);
+    expect(room.signal(1, 0, 100)).toBe(true); // other sender unaffected
+    expect(room.signal(0, 1, 100 + SIGNAL_WINDOW_MS)).toBe(true);
   });
 });

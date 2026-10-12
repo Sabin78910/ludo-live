@@ -46,7 +46,15 @@ export type ClientMsg =
   | { t: "roll" }
   | { t: "move"; token: number }
   | { t: "emoji"; emoji: string }
+  | { t: "signal"; to: number; kind: SignalKind; data: string }
   | { t: "ping" };
+
+export type SignalKind = "offer" | "answer" | "ice";
+export const SIGNAL_KINDS: readonly SignalKind[] = ["offer", "answer", "ice"];
+/** Largest SDP/ICE payload relayed; a voice-only SDP is a few KB at most. */
+export const MAX_SIGNAL_DATA = 6000;
+const MAX_MSG = 2000;
+const MAX_SIGNAL_MSG = MAX_SIGNAL_DATA + 200;
 
 export interface SeatView {
   name: string;
@@ -87,12 +95,13 @@ export type ServerMsg =
   | { t: "welcome"; seat: number; token: string; code: string }
   | { t: "state"; room: RoomView }
   | { t: "emoji"; seat: number; emoji: string }
+  | { t: "signal"; from: number; kind: SignalKind; data: string }
   | { t: "error"; code: ErrorCode; message: string }
   | { t: "pong" };
 
 /** Parse and validate an untrusted client message. Returns null for anything malformed. */
 export function parseClientMsg(raw: unknown): ClientMsg | null {
-  if (typeof raw !== "string" || raw.length > 2000) return null;
+  if (typeof raw !== "string" || raw.length > MAX_SIGNAL_MSG) return null;
   let m: unknown;
   try {
     m = JSON.parse(raw);
@@ -101,6 +110,7 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
   }
   if (!m || typeof m !== "object") return null;
   const o = m as Record<string, unknown>;
+  if (o.t !== "signal" && raw.length > MAX_MSG) return null;
   switch (o.t) {
     case "hello":
       return {
@@ -123,6 +133,14 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
     case "emoji":
       return typeof o.emoji === "string" && (EMOJIS as readonly string[]).includes(o.emoji)
         ? { t: "emoji", emoji: o.emoji }
+        : null;
+    case "signal":
+      return Number.isInteger(o.to) &&
+        (SIGNAL_KINDS as readonly unknown[]).includes(o.kind) &&
+        typeof o.data === "string" &&
+        o.data.length > 0 &&
+        o.data.length <= MAX_SIGNAL_DATA
+        ? { t: "signal", to: o.to as number, kind: o.kind as SignalKind, data: o.data }
         : null;
     default:
       return null;
