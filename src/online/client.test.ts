@@ -73,6 +73,20 @@ describe("RoomClient", () => {
     expect(sockets).toHaveLength(1);
   });
 
+  it("delivers quick chat to the handler", () => {
+    const sockets: FakeSocket[] = [];
+    const onChat = vi.fn();
+    const c = new RoomClient("ws://x/room/ABCDEF", "ABCDEF", { name: "A", clientSeed: "s1", create: true }, { onState: vi.fn(), onChat }, () => {
+      const s = new FakeSocket();
+      sockets.push(s);
+      return s;
+    });
+    c.connect();
+    sockets[0].open();
+    sockets[0].recv({ t: "chat", playerId: 1, phraseId: "wow" });
+    expect(onChat).toHaveBeenCalledWith(1, "wow");
+  });
+
   it("ignores garbage messages", () => {
     const { sockets, onState } = make();
     sockets[0].open();

@@ -1106,3 +1106,53 @@ tr.bad td {
     transform: none;
   }
 }
+
+/* Quick chat */
+.chat-live {
+  position: absolute;
+  left: 8px;
+  top: -34px;
+  pointer-events: none;
+}
+.chat-bubble {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(10px);
+  white-space: nowrap;
+  animation: pop-up 3s ease-out forwards;
+}
+.quick-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.chat-phrases,
+.chat-prefs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.quick-chat button {
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  color: inherit;
+  cursor: pointer;
+}
+.quick-chat .chat-prefs button {
+  font-size: 0.85rem;
+  opacity: 0.85;
+}
+.quick-chat button[aria-pressed="true"] {
+  border-color: currentColor;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-bubble {
+    animation: none;
+  }
+}

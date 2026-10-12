@@ -10,11 +10,18 @@ export interface Reaction {
   emoji: string;
 }
 
+export interface ChatBubbleMsg {
+  id: number;
+  seat: number;
+  phraseId: string;
+}
+
 export interface OnlineRoom {
   room: RoomView | null;
   status: ConnStatus;
   error: { code: ErrorCode; message: string } | null;
   reactions: Reaction[];
+  chats: ChatBubbleMsg[];
   send(msg: ClientMsg): void;
   controller: Controller | null;
 }
@@ -25,6 +32,7 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
   const [status, setStatus] = useState<ConnStatus>("connecting");
   const [error, setError] = useState<OnlineRoom["error"]>(null);
   const [reactions, setReactions] = useState<Reaction[]>([]);
+  const [chats, setChats] = useState<ChatBubbleMsg[]>([]);
   const [busyUntil, setBusyUntil] = useState(0);
   const [, force] = useState(0);
   const prevRef = useRef<{ seq: number; tokens: number[][] | null }>({ seq: -1, tokens: null });
@@ -48,6 +56,11 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
         const id = ++rid;
         setReactions((r) => [...r.slice(-5), { id, seat, emoji }]);
         setTimeout(() => setReactions((r) => r.filter((x) => x.id !== id)), 2400);
+      },
+      onChat(seat, phraseId) {
+        const id = ++rid;
+        setChats((c) => [...c.filter((x) => x.seat !== seat), { id, seat, phraseId }]);
+        setTimeout(() => setChats((c) => c.filter((x) => x.id !== id)), 3000);
       },
       onError(code, message) {
         setError({ code, message });
@@ -96,5 +109,5 @@ export function useOnlineRoom(url: string, code: string, name: string, clientSee
 
   // The animation lock is time based, so it is applied on every render (force() re-renders when it ends).
   const ctl = controller && { ...controller, canAct: controller.canAct && Date.now() >= busyUntil };
-  return { room, status, error, reactions, send, controller: ctl };
+  return { room, status, error, reactions, chats, send, controller: ctl };
 }

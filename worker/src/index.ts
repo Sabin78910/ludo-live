@@ -115,6 +115,9 @@ export class LudoRoom implements DurableObject {
       case "emoji":
         if (room.emoji(seat, now)) this.broadcastRaw({ t: "emoji", seat, emoji: msg.emoji });
         return;
+      case "chat":
+        if (room.chat(seat, msg.phraseId, now)) this.broadcastRaw({ t: "chat", playerId: seat, phraseId: msg.phraseId });
+        return;
     }
     if (!result.ok) send(ws, { t: "error", code: (result.code ?? "bad") as "bad", message: result.message ?? "Not allowed" });
     else await this.commit(room, now);

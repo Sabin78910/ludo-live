@@ -180,9 +180,29 @@ describe("RoomCore housekeeping", () => {
   it("rate-limits emoji reactions per seat", async () => {
     const { room } = await lobby(2);
     expect(room.emoji(0, 10_000)).toBe(true);
-    expect(room.emoji(0, 10_500)).toBe(false);
-    expect(room.emoji(1, 10_500)).toBe(true);
-    expect(room.emoji(0, 11_300)).toBe(true);
+    expect(room.emoji(0, 12_000)).toBe(false);
+    expect(room.emoji(1, 12_000)).toBe(true);
+    expect(room.emoji(0, 13_000)).toBe(true);
+  });
+  it("shares one 3 s gap between emoji and quick chat", async () => {
+    const { room } = await lobby(2);
+    expect(room.chat(0, "nice-move", 10_000)).toBe(true);
+    expect(room.emoji(0, 11_000)).toBe(false);
+    expect(room.chat(0, "wow", 12_999)).toBe(false);
+    expect(room.chat(1, "wow", 11_000)).toBe(true);
+    expect(room.chat(0, "wow", 13_000)).toBe(true);
+  });
+  it("rejects unknown phrase ids", async () => {
+    const { room } = await lobby(2);
+    expect(room.chat(0, "hello-world", 10_000)).toBe(false);
+    expect(room.chat(0, "good-luck", 10_001)).toBe(true); // a rejected id does not use up the gap
+  });
+  it("allows at most 10 chat or emoji messages a minute", async () => {
+    const { room } = await lobby(2);
+    for (let i = 0; i < 10; i++) expect(room.chat(0, "wow", 100_000 + i * 3_000)).toBe(true);
+    expect(room.chat(0, "wow", 100_000 + 10 * 3_000)).toBe(false); // 11th within 60 s
+    expect(room.emoji(0, 100_000 + 10 * 3_000)).toBe(false);
+    expect(room.chat(0, "wow", 100_000 + 63_000)).toBe(true);
   });
   it("expires rooms nobody is connected to", async () => {
     const { room } = await lobby(2);

@@ -7,6 +7,7 @@ export interface RoomHandlers {
   onState(room: RoomView, receivedAt: number): void;
   onWelcome?(seat: number, token: string): void;
   onEmoji?(seat: number, emoji: string): void;
+  onChat?(playerId: number, phraseId: string): void;
   onError?(code: ErrorCode, message: string): void;
   onStatus?(status: ConnStatus): void;
 }
@@ -100,6 +101,9 @@ export class RoomClient {
         break;
       case "emoji":
         this.handlers.onEmoji?.(msg.seat, msg.emoji);
+        break;
+      case "chat":
+        this.handlers.onChat?.(msg.playerId, msg.phraseId);
         break;
       case "error":
         this.handlers.onError?.(msg.code, msg.message);

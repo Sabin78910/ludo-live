@@ -6,9 +6,10 @@ import { ROLL_MS, buildFrames, eventToast } from "../game/anim";
 import type { Controller } from "../game/controller";
 import { t, type Lang, type StringKey } from "../game/i18n";
 import { play, vibrate, type Sfx } from "../game/sound";
-import type { Reaction } from "../online/useOnlineRoom";
+import type { ChatBubbleMsg, Reaction } from "../online/useOnlineRoom";
 import { Board, ROTATION, type Burst } from "./Board";
 import { Dice } from "./Dice";
+import { QuickChat, ChatBubbles } from "./QuickChat";
 import { Results } from "./Results";
 
 export interface GameViewProps {
@@ -24,6 +25,15 @@ export interface GameViewProps {
   reactions?: Reaction[];
   playerOfSeat?(seat: number): number;
   onEmoji?(emoji: string): void;
+  /** Quick chat (online rooms only). */
+  chat?: {
+    bubbles: ChatBubbleMsg[];
+    onSend(phraseId: string): void;
+    hidden: boolean;
+    onToggleHidden(): void;
+    muted: string[];
+    onToggleMute(name: string): void;
+  };
   banner?: string | null;
 }
 
@@ -158,6 +168,8 @@ export function GameView(props: GameViewProps) {
   else if (ctl.bots[cur]) status = t(lang, "botThinking", { name: curName });
   else status = t(lang, "turnOf", { name: curName });
 
+  // Bare names (without the "(You)" suffix) key the local mute list.
+  const playerNames = state.players.map((p) => p.name);
   const reactionsFor = (player: number) =>
     (props.reactions ?? []).filter((r) => (props.playerOfSeat ? props.playerOfSeat(r.seat) : -1) === player);
 
@@ -188,6 +200,16 @@ export function GameView(props: GameViewProps) {
               {place >= 0 && <span className="tag gold">{t(lang, `place${place + 1}` as StringKey)}</span>}
               {active && secondsLeft !== null && (
                 <span className={`timer${secondsLeft <= 5 ? " low" : ""}`}>{t(lang, "secondsLeft", { s: secondsLeft })}</span>
+              )}
+              {props.chat && (
+                <ChatBubbles
+                  lang={lang}
+                  hidden={props.chat.hidden}
+                  muted={props.chat.muted}
+                  items={props.chat.bubbles
+                    .filter((b) => props.playerOfSeat?.(b.seat) === i)
+                    .map((b) => ({ id: b.id, phraseId: b.phraseId, name: playerNames[i] }))}
+                />
               )}
               {reactionsFor(i).map((r) => (
                 <span key={r.id} className="reaction" aria-hidden="true">
@@ -247,6 +269,18 @@ export function GameView(props: GameViewProps) {
             </button>
           ))}
         </div>
+      )}
+
+      {props.chat && (
+        <QuickChat
+          lang={lang}
+          onSend={props.chat.onSend}
+          hidden={props.chat.hidden}
+          onToggleHidden={props.chat.onToggleHidden}
+          muted={props.chat.muted}
+          onToggleMute={props.chat.onToggleMute}
+          others={playerNames.filter((_, i) => !ctl.local[i] && !ctl.bots[i])}
+        />
       )}
 
       {over && (

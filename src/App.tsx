@@ -91,6 +91,10 @@ export default function App() {
         haptics={settings.haptics}
         reduced={reduced}
         quick={settings.quick}
+        hideChat={settings.hideChat}
+        mutedNames={settings.mutedNames}
+        onHideChat={(hideChat) => update({ hideChat })}
+        onMutedNames={(mutedNames) => update({ mutedNames })}
         onExit={() => setScreen({ name: "home" })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
       />

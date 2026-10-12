@@ -19,6 +19,15 @@ describe("i18n", () => {
 });
 
 describe("settings", () => {
+  it("stores chat preferences and sanitises them", () => {
+    const fb = defaultSettings();
+    expect(fb.hideChat).toBe(false);
+    expect(fb.mutedNames).toEqual([]);
+    const s = parseSettings(JSON.stringify({ hideChat: true, mutedNames: ["Ann", 5, "Bo"] }), fb);
+    expect(s.hideChat).toBe(true);
+    expect(s.mutedNames).toEqual(["Ann", "Bo"]);
+    expect(parseSettings(JSON.stringify({ hideChat: "yes", mutedNames: "x" }), fb)).toMatchObject({ hideChat: false, mutedNames: [] });
+  });
   const fb = defaultSettings();
   it("detects Nepali from the browser languages", () => {
     expect(detectLang(["ne-NP", "en"])).toBe("ne");

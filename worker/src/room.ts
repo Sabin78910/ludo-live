@@ -2,7 +2,7 @@
 // The Durable Object (index.ts) only stores RoomData, forwards messages and schedules alarms.
 import { chooseMove } from "../../src/engine/bot";
 import { cleanClientSeed, deriveRoll, randomHex, sha256Hex } from "../../src/engine/fair";
-import { MAX_SEATS, cleanName, type ErrorCode, type RoomStatus, type RoomView } from "../../src/engine/protocol";
+import { MAX_SEATS, cleanName, isQuickChatId, type ErrorCode, type RoomStatus, type RoomView } from "../../src/engine/protocol";
 import {
   animationSteps,
   applyMove,
@@ -20,7 +20,9 @@ export const TURN_MS = 20_000;
 export const TAKEOVER_MS = 30_000;
 export const BOT_DELAY_MS = 1_000;
 export const STEP_MS = 160;
-export const EMOJI_GAP_MS = 1_200;
+export const EMOJI_GAP_MS = 3_000;
+/** Emoji reactions and quick chat share this per-player budget. */
+export const CHAT_PER_MINUTE = 10;
 /** Rooms with nobody connected are forgotten after this long. */
 export const IDLE_EXPIRY_MS = 6 * 60 * 60 * 1000;
 
@@ -33,6 +35,8 @@ export interface SeatState {
   bot: boolean;
   takeover: boolean;
   lastEmojiAt: number;
+  /** Recent emoji/chat times (optional: absent in rooms stored before quick chat). */
+  chatTimes?: number[];
 }
 
 export interface RoomData {
@@ -211,8 +215,16 @@ export class RoomCore {
   emoji(seat: number, now: number): boolean {
     const s = this.data.seats[seat];
     if (!s || now - s.lastEmojiAt < EMOJI_GAP_MS) return false;
+    const recent = (s.chatTimes ?? []).filter((t) => now - t < 60_000);
+    if (recent.length >= CHAT_PER_MINUTE) return false;
     s.lastEmojiAt = now;
+    s.chatTimes = [...recent, now];
     return true;
+  }
+
+  /** Quick chat: unknown ids are dropped, and it shares the emoji rate limit. */
+  chat(seat: number, phraseId: string, now: number): boolean {
+    return isQuickChatId(phraseId) && this.emoji(seat, now);
   }
 
   private async doRoll(now: number): Promise<void> {

@@ -1,4 +1,4 @@
-import { ROOM_CODE_ALPHABET, cleanName, newRoomCode, normalizeRoomCode, parseClientMsg } from "./protocol";
+import { QUICK_CHAT, ROOM_CODE_ALPHABET, cleanName, newRoomCode, normalizeRoomCode, parseClientMsg } from "./protocol";
 
 describe("room codes", () => {
   it("are 6 characters from the unambiguous alphabet", () => {
@@ -34,6 +34,7 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg('{"t":"roll"}')).toEqual({ t: "roll" });
     expect(parseClientMsg('{"t":"move","token":2}')).toEqual({ t: "move", token: 2 });
     expect(parseClientMsg('{"t":"emoji","emoji":"🔥"}')).toEqual({ t: "emoji", emoji: "🔥" });
+    expect(parseClientMsg('{"t":"chat","phraseId":"nice-move"}')).toEqual({ t: "chat", phraseId: "nice-move" });
     expect(parseClientMsg('{"t":"start","quick":true}')).toEqual({ t: "start", quick: true });
     expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","create":true}')).toMatchObject({ t: "hello", name: "A", create: true });
   });
@@ -42,7 +43,19 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg('{"t":"hack"}')).toBeNull();
     expect(parseClientMsg('{"t":"move","token":"1"}')).toBeNull();
     expect(parseClientMsg('{"t":"emoji","emoji":"<script>"}')).toBeNull();
+    expect(parseClientMsg('{"t":"chat","phraseId":"free text"}')).toBeNull();
+    expect(parseClientMsg('{"t":"chat","phraseId":7}')).toBeNull();
+    expect(parseClientMsg('{"t":"chat"}')).toBeNull();
     expect(parseClientMsg("x".repeat(3000))).toBeNull();
     expect(parseClientMsg(42)).toBeNull();
+  });
+});
+
+describe("QUICK_CHAT", () => {
+  it("has 8 presets with unique ids and EN/NE text", () => {
+    expect(QUICK_CHAT).toHaveLength(8);
+    expect(new Set(QUICK_CHAT.map((p) => p.id)).size).toBe(8);
+    for (const p of QUICK_CHAT) expect(p.en && p.ne).toBeTruthy();
+    expect(QUICK_CHAT.map((p) => p.en)).toEqual(["Good luck!", "Nice move!", "Your turn!", "Oops!", "Wow!", "Thanks!", "Good game", "Rematch?"]);
   });
 });

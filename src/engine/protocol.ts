@@ -5,6 +5,18 @@ export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O/
 export const ROOM_CODE_LENGTH = 6;
 export const MAX_SEATS = 4;
 export const EMOJIS = ["👍", "😂", "😮", "😡", "🔥", "🎉", "😭", "🙏"] as const;
+/** Preset phrases: the client sends only the id, so there is nothing to moderate. */
+export const QUICK_CHAT = [
+  { id: "good-luck", en: "Good luck!", ne: "शुभकामना!" },
+  { id: "nice-move", en: "Nice move!", ne: "राम्रो चाल!" },
+  { id: "your-turn", en: "Your turn!", ne: "तपाईंको पालो!" },
+  { id: "oops", en: "Oops!", ne: "उफ!" },
+  { id: "wow", en: "Wow!", ne: "वाह!" },
+  { id: "thanks", en: "Thanks!", ne: "धन्यवाद!" },
+  { id: "good-game", en: "Good game", ne: "राम्रो खेल" },
+  { id: "rematch", en: "Rematch?", ne: "फेरि खेलौं?" },
+] as const;
+export const isQuickChatId = (id: unknown): id is string => QUICK_CHAT.some((p) => p.id === id);
 export const MAX_NAME = 16;
 
 /** Unbiased 6-character room code from random bytes (rejection sampling keeps letters equally likely). */
@@ -46,6 +58,7 @@ export type ClientMsg =
   | { t: "roll" }
   | { t: "move"; token: number }
   | { t: "emoji"; emoji: string }
+  | { t: "chat"; phraseId: string }
   | { t: "ping" };
 
 export interface SeatView {
@@ -87,6 +100,7 @@ export type ServerMsg =
   | { t: "welcome"; seat: number; token: string; code: string }
   | { t: "state"; room: RoomView }
   | { t: "emoji"; seat: number; emoji: string }
+  | { t: "chat"; playerId: number; phraseId: string }
   | { t: "error"; code: ErrorCode; message: string }
   | { t: "pong" };
 
@@ -124,6 +138,8 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
       return typeof o.emoji === "string" && (EMOJIS as readonly string[]).includes(o.emoji)
         ? { t: "emoji", emoji: o.emoji }
         : null;
+    case "chat":
+      return isQuickChatId(o.phraseId) ? { t: "chat", phraseId: o.phraseId } : null;
     default:
       return null;
   }

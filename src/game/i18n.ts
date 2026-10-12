@@ -94,6 +94,11 @@ const en = {
   close: "Close",
   copyProof: "Copy proof",
   reactions: "Reactions",
+  quickChat: "Quick chat",
+  hideChat: "Hide chat",
+  showChat: "Show chat",
+  muteName: "Mute {name}",
+  unmuteName: "Unmute {name}",
 } as const;
 
 export type StringKey = keyof typeof en;
@@ -190,6 +195,11 @@ const ne: Record<StringKey, string> = {
   close: "बन्द",
   copyProof: "प्रमाण कपी",
   reactions: "प्रतिक्रिया",
+  quickChat: "छिटो च्याट",
+  hideChat: "च्याट लुकाउनुहोस्",
+  showChat: "च्याट देखाउनुहोस्",
+  muteName: "{name} लाई म्यूट गर्नुहोस्",
+  unmuteName: "{name} लाई अनम्यूट गर्नुहोस्",
 };
 
 const tables: Record<Lang, Record<StringKey, string>> = { en, ne };

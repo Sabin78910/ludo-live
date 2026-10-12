@@ -16,12 +16,16 @@ export interface OnlineProps {
   haptics: boolean;
   reduced: boolean;
   quick: boolean;
+  hideChat: boolean;
+  mutedNames: string[];
+  onHideChat(hidden: boolean): void;
+  onMutedNames(names: string[]): void;
   onExit(): void;
   onVerify(p: Proof): void;
 }
 
 export function OnlineRoomScreen(p: OnlineProps) {
-  const { room, status, error, reactions, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
+  const { room, status, error, reactions, chats, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
   const [quick, setQuick] = useState(p.quick);
   const [copied, setCopied] = useState(false);
   const lang = p.lang;
@@ -65,6 +69,14 @@ export function OnlineRoomScreen(p: OnlineProps) {
         reactions={reactions}
         playerOfSeat={(seat) => room.playerSeats.indexOf(seat)}
         onEmoji={(emoji) => send({ t: "emoji", emoji })}
+        chat={{
+          bubbles: chats,
+          onSend: (phraseId) => send({ t: "chat", phraseId }),
+          hidden: p.hideChat,
+          onToggleHidden: () => p.onHideChat(!p.hideChat),
+          muted: p.mutedNames,
+          onToggleMute: (n) => p.onMutedNames(p.mutedNames.includes(n) ? p.mutedNames.filter((x) => x !== n) : [...p.mutedNames, n]),
+        }}
         banner={banner}
       />
     );
