@@ -94,6 +94,18 @@ const en = {
   close: "Close",
   copyProof: "Copy proof",
   reactions: "Reactions",
+  introRoll: "Roll",
+  introRollText: "Tap the dice. A six brings a token out and earns another roll.",
+  introMove: "Move",
+  introMoveText: "Pick a token and it walks the exact number shown. Stars are safe.",
+  introCapture: "Capture",
+  introCaptureText: "Land on a rival and it goes home. You get a bonus roll.",
+  introFair: "The dice are provably fair",
+  introFairText: "Before the first roll we publish a locked fingerprint of the dice seed. After the game you can check every roll yourself.",
+  introPlay: "Play a quick game",
+  introSkip: "Skip",
+  introStep: "Step {n} of {total}",
+  introNext: "Next",
 } as const;
 
 export type StringKey = keyof typeof en;
@@ -190,6 +202,18 @@ const ne: Record<StringKey, string> = {
   close: "बन्द",
   copyProof: "प्रमाण कपी",
   reactions: "प्रतिक्रिया",
+  introRoll: "फाल्नुहोस्",
+  introRollText: "पासा ट्याप गर्नुहोस्। छक्काले गोटी बाहिर निकाल्छ र फेरि फाल्न पाइन्छ।",
+  introMove: "सार्नुहोस्",
+  introMoveText: "गोटी छान्नुहोस्, देखाइएको अंक जति ठ्याक्कै हिँड्छ। तारा सुरक्षित छन्।",
+  introCapture: "काट्नुहोस्",
+  introCaptureText: "विपक्षीको गोटीमा पुग्नुहोस्, त्यो घर फर्कन्छ। तपाईंले थप पालो पाउनुहुन्छ।",
+  introFair: "पासा प्रमाणित निष्पक्ष छ",
+  introFairText: "पहिलो पासा अघि हामी पासाको बीउको लक गरिएको छाप प्रकाशित गर्छौं। खेलपछि हरेक पासा आफैं जाँच्न सक्नुहुन्छ।",
+  introPlay: "छिटो खेल खेल्नुहोस्",
+  introSkip: "छोड्नुहोस्",
+  introStep: "चरण {n} / {total}",
+  introNext: "अर्को",
 };
 
 const tables: Record<Lang, Record<StringKey, string>> = { en, ne };

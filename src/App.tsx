@@ -7,7 +7,9 @@ import { useInstallPrompt } from "./game/install";
 import { loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
+import { hasSeenIntro, markIntroSeen } from "./game/onboarding";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { Intro } from "./ui/Intro";
 import { GameView } from "./ui/GameView";
 import { OnlineRoomScreen } from "./ui/Online";
 import { Verify, type Proof } from "./ui/Verify";
@@ -16,6 +18,7 @@ const WS_URL = import.meta.env.VITE_WS_URL;
 
 type Screen =
   | { name: "home" }
+  | { name: "intro" }
   | { name: "setup"; mode: "bots" | "local" }
   | { name: "local"; seats: LocalSeat[]; quick: boolean; key: number }
   | { name: "online"; code: string; create: boolean }
@@ -26,7 +29,8 @@ export default function App() {
   const [reduced, setReduced] = useState(prefersReducedMotion);
   const [screen, setScreen] = useState<Screen>(() => {
     const code = typeof window !== "undefined" ? roomFromSearch(window.location.search) : null;
-    return code && WS_URL ? { name: "online", code, create: false } : { name: "home" };
+    if (code && WS_URL) return { name: "online", code, create: false };
+    return hasSeenIntro() ? { name: "home" } : { name: "intro" };
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
@@ -60,6 +64,29 @@ export default function App() {
 
   const tap = () => settings.sound && play("tap");
   const myName = settings.name.trim() || t(lang, "you");
+
+  if (screen.name === "intro") {
+    const finish = () => markIntroSeen();
+    const quickGame = () => {
+      finish();
+      const seats: LocalSeat[] = seatColors(2).map((color, i) => ({
+        color,
+        name: i === 0 ? myName : `${t(lang, "bot")} ${i}`,
+        bot: i > 0 ? "easy" : null,
+      }));
+      setScreen({ name: "local", seats, quick: true, key: Date.now() });
+    };
+    return (
+      <Intro
+        lang={lang}
+        onPlay={quickGame}
+        onSkip={() => {
+          finish();
+          setScreen({ name: "home" });
+        }}
+      />
+    );
+  }
 
   if (screen.name === "verify") return <Verify proof={screen.proof} lang={lang} onBack={() => setScreen(screen.back)} />;
 
