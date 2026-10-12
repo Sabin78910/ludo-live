@@ -15,6 +15,7 @@ import {
   type GameState,
   type Mode,
 } from "../../src/engine/rules";
+import { weekTwist } from "../../src/engine/tournament";
 
 export const TURN_MS = 20_000;
 export const TAKEOVER_MS = 30_000;
@@ -33,6 +34,8 @@ export interface SeatState {
   bot: boolean;
   takeover: boolean;
   lastEmojiAt: number;
+  /** Stable anonymous id from the client, used only for the weekly leaderboard. */
+  player?: string;
 }
 
 export interface RoomData {
@@ -52,6 +55,10 @@ export interface RoomData {
   /** When the current turn is played automatically (bot delay, or the human turn timer). */
   actAt: number | null;
   lastActivity: number;
+  /** ISO week key if this table plays the weekly tournament twist. */
+  tournament?: string | null;
+  /** The tournament result was already sent to the leaderboard. */
+  reported?: boolean;
 }
 
 export type JoinResult = { ok: true; seat: number; token: string; rejoined: boolean } | { ok: false; code: ErrorCode; message: string };
@@ -62,7 +69,7 @@ const fail = (code: ErrorCode, message: string) => ({ ok: false as const, code, 
 export class RoomCore {
   constructor(public data: RoomData) {}
 
-  static async create(code: string, now: number, serverSeed: string = randomHex(32)): Promise<RoomCore> {
+  static async create(code: string, now: number, serverSeed: string = randomHex(32), tournament: string | null = null): Promise<RoomCore> {
     return new RoomCore({
       code,
       createdAt: now,
@@ -80,6 +87,8 @@ export class RoomCore {
       seq: 0,
       actAt: null,
       lastActivity: now,
+      tournament,
+      reported: false,
     });
   }
 
@@ -87,7 +96,7 @@ export class RoomCore {
     return token ? this.data.seats.findIndex((s) => s.token === token) : -1;
   }
 
-  join(msg: { name: string; clientSeed: string; token?: string }, now: number, newToken: () => string = () => randomHex(16)): JoinResult {
+  join(msg: { name: string; clientSeed: string; token?: string; player?: string }, now: number, newToken: () => string = () => randomHex(16)): JoinResult {
     const d = this.data;
     d.lastActivity = now;
     const existing = this.seatOfToken(msg.token);
@@ -111,6 +120,7 @@ export class RoomCore {
       bot: false,
       takeover: false,
       lastEmojiAt: 0,
+      player: msg.player,
     });
     if (d.seats.length === 1 || !d.seats[d.host]?.connected) d.host = d.seats.length - 1;
     return { ok: true, seat: d.seats.length - 1, token, rejoined: false };
@@ -165,8 +175,10 @@ export class RoomCore {
     d.seats = d.seats.filter((s) => s.connected || s.bot);
     d.host = Math.max(0, d.seats.findIndex((s) => s.token === hostToken));
     if (d.seats.length < 2) return fail("bad", "Need at least 2 players (add a bot)");
+    const twist = d.tournament ? weekTwist(d.tournament) : null;
+    if (twist?.players && d.seats.length !== twist.players) return fail("bad", `This week's tables seat exactly ${twist.players} players`);
     const colors = seatColors(d.seats.length);
-    d.mode = quick ? "quick" : "classic";
+    d.mode = quick || twist?.quick ? "quick" : "classic";
     d.clientSeeds = d.seats.map((s) => s.clientSeed); // locked from here on
     d.playerSeats = d.seats.map((_, i) => i);
     d.game = createGame(
@@ -176,6 +188,18 @@ export class RoomCore {
     d.status = "playing";
     this.emit([{ type: "turn", player: 0 }], now);
     return { ok: true };
+  }
+
+  /** The human winner of a finished tournament table, until it has been reported. */
+  pendingWin(): { week: string; player: string; name: string } | null {
+    const d = this.data;
+    if (!d.tournament || d.reported || d.status !== "over" || !d.game) return null;
+    const seat = d.seats[d.playerSeats[d.game.finished[0]]];
+    return seat && !seat.bot && seat.player ? { week: d.tournament, player: seat.player, name: seat.name } : null;
+  }
+
+  markReported(): void {
+    this.data.reported = true;
   }
 
   currentSeat(): number | null {
@@ -327,6 +351,7 @@ export class RoomCore {
       seq: d.seq,
       deadline: d.status === "playing" && !this.isBotTurn() ? d.actAt : null,
       now,
+      tournament: d.tournament ?? null,
     };
   }
 }

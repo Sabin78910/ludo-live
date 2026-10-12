@@ -1,11 +1,14 @@
 // Cloudflare Worker entry: routes wss://<worker>/room/<CODE> to one Durable Object per room.
 // The Durable Object uses the WebSocket Hibernation API, keeps RoomData in storage and drives timers with alarms.
 import { normalizeRoomCode, parseClientMsg, type ServerMsg } from "../../src/engine/protocol";
+import { isoWeek, isWeekKey, LADDER, weekTwist } from "../../src/engine/tournament";
+import { PLAYER_ID, WeekBoard, type BoardData } from "./board";
 import { RoomCore, type RoomData } from "./room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
 }
+
 
 interface Attachment {
   code: string;
@@ -22,6 +25,15 @@ export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const url = new URL(req.url);
     if (url.pathname === "/" || url.pathname === "/health") return json({ ok: true, app: "ludo-live" });
+    if (url.pathname === "/tournament") {
+      // Public, read-only: this week's twist, ladder and leaderboard. Wins are only recorded server side.
+      const week = isoWeek(new Date());
+      const player = url.searchParams.get("player");
+      const stub = env.ROOMS.get(env.ROOMS.idFromName(`tournament:${week.key}`));
+      const res = await stub.fetch(`https://board/board?week=${week.key}&player=${PLAYER_ID.test(player ?? "") ? player : ""}`);
+      const board = (await res.json()) as object;
+      return json({ ...board, week: week.key, twist: weekTwist(week.key), ladder: LADDER });
+    }
     const match = url.pathname.match(/^\/room\/([A-Za-z0-9]+)$/);
     const code = normalizeRoomCode(match?.[1]);
     if (!code) return json({ error: "not found" }, 404);
@@ -34,7 +46,36 @@ export default {
 export class LudoRoom implements DurableObject {
   private room: RoomCore | null = null;
 
-  constructor(private readonly state: DurableObjectState) {}
+  constructor(
+    private readonly state: DurableObjectState,
+    private readonly env: Env,
+  ) {}
+
+  /** Internal HTTP between Durable Objects: GET /board reads, POST /win records. Not routed from the public Worker. */
+  private async board(req: Request): Promise<Response> {
+    const url = new URL(req.url);
+    const week = url.searchParams.get("week");
+    if (!isWeekKey(week)) return json({ error: "bad week" }, 400);
+    const board = new WeekBoard(week, await this.state.storage.get<BoardData>("board"));
+    if (url.pathname === "/win" && req.method === "POST") {
+      const body = (await req.json()) as { player?: string; name?: string };
+      board.recordWin(String(body.player ?? ""), String(body.name ?? ""), Date.now());
+      await this.state.storage.put("board", board.data);
+      return json({ ok: true });
+    }
+    return json({ top: board.top(20), you: board.view(url.searchParams.get("player") || null) });
+  }
+
+  private async reportWin(room: RoomCore): Promise<void> {
+    const win = room.pendingWin();
+    if (!win) return;
+    room.markReported();
+    const stub = this.env.ROOMS.get(this.env.ROOMS.idFromName(`tournament:${win.week}`));
+    await stub.fetch(`https://board/win?week=${win.week}`, {
+      method: "POST",
+      body: JSON.stringify({ player: win.player, name: win.name }),
+    });
+  }
 
   private async load(): Promise<RoomCore | null> {
     if (!this.room) {
@@ -45,6 +86,7 @@ export class LudoRoom implements DurableObject {
   }
 
   async fetch(req: Request): Promise<Response> {
+    if (req.headers.get("Upgrade")?.toLowerCase() !== "websocket") return this.board(req);
     const code = normalizeRoomCode(new URL(req.url).pathname.slice(1).split("/").pop());
     if (!code) return new Response("bad room", { status: 400 });
     const pair = new WebSocketPair();
@@ -71,7 +113,7 @@ export class LudoRoom implements DurableObject {
           send(ws, { t: "error", code: "not_found", message: "Room not found. Check the code." });
           return ws.close(4004, "not found");
         }
-        room = this.room = await RoomCore.create(att.code, now);
+        room = this.room = await RoomCore.create(att.code, now, undefined, msg.tournament ? isoWeek(new Date(now)).key : null);
       } else if (msg.create && room.seatOfToken(msg.token) < 0 && room.data.seats.length > 0) {
         send(ws, { t: "error", code: "exists", message: "Room code in use" });
         return ws.close(4009, "exists");
@@ -157,6 +199,7 @@ export class LudoRoom implements DurableObject {
   }
 
   private async commit(room: RoomCore, now: number): Promise<void> {
+    await this.reportWin(room);
     await this.state.storage.put("room", room.data);
     const next = room.nextAlarm();
     if (next !== null) await this.state.storage.setAlarm(Math.max(next, now + 50));

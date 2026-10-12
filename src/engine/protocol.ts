@@ -39,7 +39,7 @@ export function cleanName(name: unknown, fallback = "Player"): string {
 }
 
 export type ClientMsg =
-  | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean }
+  | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean; tournament?: boolean; player?: string }
   | { t: "start"; quick?: boolean }
   | { t: "addBot" }
   | { t: "removeBot"; seat: number }
@@ -79,6 +79,8 @@ export interface RoomView {
   /** Epoch ms when the current player's turn times out (null for bots or outside a game). */
   deadline: number | null;
   now: number;
+  /** ISO week key when this is a weekly tournament table. */
+  tournament: string | null;
 }
 
 export type ErrorCode = "not_found" | "exists" | "full" | "started" | "bad" | "not_allowed";
@@ -109,6 +111,8 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
         clientSeed: typeof o.clientSeed === "string" ? o.clientSeed : "",
         token: typeof o.token === "string" ? o.token.slice(0, 64) : undefined,
         create: o.create === true,
+        tournament: o.tournament === true,
+        player: typeof o.player === "string" && /^[A-Za-z0-9_-]{4,64}$/.test(o.player) ? o.player : undefined,
       };
     case "start":
       return { t: "start", quick: o.quick === true };

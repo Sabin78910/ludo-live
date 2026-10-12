@@ -37,6 +37,10 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg('{"t":"start","quick":true}')).toEqual({ t: "start", quick: true });
     expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","create":true}')).toMatchObject({ t: "hello", name: "A", create: true });
   });
+  it("accepts a tournament flag and a clean player id on hello", () => {
+    expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","create":true,"tournament":true,"player":"ab12"}')).toMatchObject({ tournament: true, player: "ab12" });
+    expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","player":"<b>"}')).toMatchObject({ player: undefined });
+  });
   it("rejects malformed or unknown input", () => {
     expect(parseClientMsg("not json")).toBeNull();
     expect(parseClientMsg('{"t":"hack"}')).toBeNull();

@@ -1,5 +1,6 @@
 import { verifyRolls } from "../../src/engine/fair";
 import { FINISH } from "../../src/engine/rules";
+import { weekTwist } from "../../src/engine/tournament";
 import { BOT_DELAY_MS, IDLE_EXPIRY_MS, RoomCore, TAKEOVER_MS, TURN_MS } from "./room";
 
 const SEED = "f".repeat(64);
@@ -204,5 +205,46 @@ describe("RoomCore housekeeping", () => {
     await room.roll(0, 1);
     const copy = new RoomCore(JSON.parse(JSON.stringify(room.data)));
     expect(copy.view(0, 2)).toEqual(room.view(0, 2));
+  });
+});
+
+describe("weekly tournament rooms", () => {
+  const join = (room: RoomCore, n: number) => {
+    for (let i = 0; i < n; i++) room.join({ name: `P${i}`, clientSeed: `s${i}`, player: `pl${i}` }, 1000, tok);
+  };
+  it("forces the quick twist", async () => {
+    const key = ["2026-W40", "2026-W41", "2026-W42"].find((k) => weekTwist(k).quick && weekTwist(k).players === null)!;
+    const room = await RoomCore.create("ABCDEF", 0, SEED, key);
+    join(room, 2);
+    expect(room.start(0, false, 1000).ok).toBe(true);
+    expect(room.data.mode).toBe("quick");
+  });
+  it("rejects the wrong table size on a table week", async () => {
+    const key = ["2026-W40", "2026-W41", "2026-W42"].find((k) => weekTwist(k).players === 3)!;
+    const room = await RoomCore.create("ABCDEF", 0, SEED, key);
+    join(room, 2);
+    expect(room.start(0, false, 1000).ok).toBe(false);
+    room.addBot(0, 1000);
+    expect(room.start(0, false, 1000).ok).toBe(true);
+  });
+  it("reports the human winner exactly once", async () => {
+    const week = ["2026-W40", "2026-W41", "2026-W42"].find((k) => weekTwist(k).players === null)!;
+    const room = await RoomCore.create("ABCDEF", 0, SEED, week);
+    expect(room.pendingWin()).toBeNull();
+    join(room, 2);
+    room.start(0, false, 1000);
+    room.data.status = "over";
+    room.data.game!.finished = [1];
+    expect(room.pendingWin()).toEqual({ week, player: "pl1", name: "P1" });
+    room.markReported();
+    expect(room.pendingWin()).toBeNull();
+  });
+  it("never reports for casual rooms", async () => {
+    const room = await RoomCore.create("ABCDEF", 0, SEED);
+    join(room, 2);
+    room.start(0, false, 1000);
+    room.data.status = "over";
+    room.data.game!.finished = [0];
+    expect(room.pendingWin()).toBeNull();
   });
 });
