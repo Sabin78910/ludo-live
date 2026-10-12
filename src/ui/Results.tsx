@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import type { Color } from "../engine/rules";
+import { buildResultCard, renderCard, shareCard, type ResultCardModel } from "../game/resultCard";
 import { t, type Lang, type StringKey } from "../game/i18n";
 
 const CONFETTI = ["#EF3B4F", "#22C55E", "#FACC15", "#3B82F6", "#F5C451", "#ffffff"];
@@ -12,6 +13,7 @@ export function Results({
   onAgain,
   onHome,
   onVerify,
+  card,
 }: {
   lang: Lang;
   title: string;
@@ -20,7 +22,17 @@ export function Results({
   onAgain?(): void;
   onHome(): void;
   onVerify(): void;
+  card?: Omit<Parameters<typeof buildResultCard>[0], "lang" | "order">;
 }) {
+  const share = async () => {
+    if (!card) return;
+    const model: ResultCardModel = buildResultCard({ ...card, lang, order });
+    try {
+      await shareCard(await renderCard(model), `${model.title} · ${model.badge}`, navigator);
+    } catch {
+      /* rendering unsupported: nothing to share */
+    }
+  };
   const pieces = useMemo(
     () =>
       Array.from({ length: 70 }, (_, i) => ({
@@ -71,6 +83,11 @@ export function Results({
           {onAgain && (
             <button type="button" className="btn primary" onClick={onAgain}>
               {t(lang, "playAgain")}
+            </button>
+          )}
+          {card && (
+            <button type="button" className="btn" onClick={share}>
+              {t(lang, "shareResult")}
             </button>
           )}
           <button type="button" className="btn" onClick={onVerify}>

@@ -258,6 +258,7 @@ export function GameView(props: GameViewProps) {
           onAgain={props.onAgain}
           onHome={props.onExit}
           onVerify={props.onVerify}
+          card={{ mode: state.mode, fair: ctl.fair }}
         />
       )}
     </div>
