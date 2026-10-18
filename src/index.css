@@ -163,7 +163,7 @@ code {
 .screen {
   max-width: 560px;
   margin: 0 auto;
-  padding: 16px 16px 40px;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
 }
 .screen.center {
   display: grid;
@@ -1106,3 +1106,17 @@ tr.bad td {
     transform: none;
   }
 }
+
+/* Colour-blind friendly: a shape on each token colour. */
+.marks .token-body {
+  display: grid;
+  place-items: center;
+  font-size: clamp(8px, 2.6vw, 15px);
+  font-weight: 900;
+  line-height: 1;
+  color: rgba(0, 0, 0, 0.6);
+}
+.marks .tok-red .token-body::after { content: "▲"; }
+.marks .tok-green .token-body::after { content: "■"; }
+.marks .tok-yellow .token-body::after { content: "★"; }
+.marks .tok-blue .token-body::after { content: "●"; }

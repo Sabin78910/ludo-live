@@ -7,6 +7,8 @@ export interface Settings {
   lang: Lang;
   sound: boolean;
   haptics: boolean;
+  /** Shapes on tokens so colours are not the only cue (colour-blind friendly). */
+  marks: boolean;
   name: string;
   difficulty: Difficulty;
   players: number;
@@ -22,6 +24,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     lang,
     sound: true,
     haptics: true,
+    marks: false,
     name: "",
     difficulty: "normal",
     players: 4,
@@ -42,6 +45,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       lang: o.lang === "ne" || o.lang === "en" ? o.lang : fallback.lang,
       sound: typeof o.sound === "boolean" ? o.sound : fallback.sound,
       haptics: typeof o.haptics === "boolean" ? o.haptics : fallback.haptics,
+      marks: typeof o.marks === "boolean" ? o.marks : fallback.marks,
       name: typeof o.name === "string" ? o.name.slice(0, 16) : fallback.name,
       difficulty: o.difficulty === "easy" || o.difficulty === "hard" || o.difficulty === "normal" ? o.difficulty : fallback.difficulty,
       players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
