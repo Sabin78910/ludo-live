@@ -7,6 +7,7 @@ import { useInstallPrompt } from "./game/install";
 import { loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
+import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
 import { GameView } from "./ui/GameView";
 import { OnlineRoomScreen } from "./ui/Online";
@@ -30,6 +31,13 @@ export default function App() {
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
+  const [stats, setStats] = useState(loadStats);
+  const onGameOver = (won: boolean) =>
+    setStats((s) => {
+      const next = recordGame(s, won, dayKey(new Date()));
+      saveStats(next);
+      return next;
+    });
   const { canInstall, install } = useInstallPrompt();
   const lang = settings.lang;
 
@@ -44,6 +52,10 @@ export default function App() {
     document.documentElement.lang = lang === "ne" ? "ne" : "en";
     document.title = t(lang, "appName");
   }, [lang]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("marks", settings.marks);
+  }, [settings.marks]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -71,6 +83,7 @@ export default function App() {
         quick={screen.quick}
         settings={settings}
         reduced={reduced}
+        onGameOver={onGameOver}
         onExit={() => setScreen({ name: "home" })}
         onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
@@ -163,6 +176,9 @@ export default function App() {
           <button type="button" className="icon-btn" aria-pressed={settings.sound} onClick={() => update({ sound: !settings.sound })} aria-label={t(lang, "sound")}>
             {settings.sound ? "🔊" : "🔇"}
           </button>
+          <button type="button" className="icon-btn" aria-pressed={settings.marks} onClick={() => update({ marks: !settings.marks })} aria-label={t(lang, "marks")} title={t(lang, "marks")}>
+            ▲
+          </button>
           <button type="button" className="icon-btn" aria-pressed={settings.haptics} onClick={() => update({ haptics: !settings.haptics })} aria-label={t(lang, "haptics")}>
             {settings.haptics ? "📳" : "📴"}
           </button>
@@ -172,6 +188,12 @@ export default function App() {
         <img src="./icon.svg" alt="" width="96" height="96" className="hero-icon" />
         <h1>{t(lang, "appName")}</h1>
         <p className="muted">{t(lang, "tagline")}</p>
+        {stats.played > 0 && (
+          <p className="muted stats-line">
+            {t(lang, "statsLine", { won: stats.won, played: stats.played })}
+            {liveStreak(stats, dayKey(new Date())) > 0 && ` · ${t(lang, "streakLine", { n: liveStreak(stats, dayKey(new Date())) })}`}
+          </p>
+        )}
         <p className="badges">
           <span className="badge">🔒 {t(lang, "fairChip")}</span>
           <span className="badge">🚫 {t(lang, "noAds")}</span>
@@ -258,6 +280,7 @@ function LocalGame({
   quick,
   settings,
   reduced,
+  onGameOver,
   onExit,
   onAgain,
   onVerify,
@@ -266,6 +289,7 @@ function LocalGame({
   quick: boolean;
   settings: Settings;
   reduced: boolean;
+  onGameOver(won: boolean): void;
   onExit(): void;
   onAgain(): void;
   onVerify(p: Proof): void;
@@ -280,6 +304,7 @@ function LocalGame({
       sound={settings.sound}
       haptics={settings.haptics}
       reduced={reduced}
+      onGameOver={onGameOver}
       onExit={onExit}
       onAgain={onAgain}
       onVerify={() =>

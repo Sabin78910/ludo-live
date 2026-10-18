@@ -25,6 +25,8 @@ export interface GameViewProps {
   playerOfSeat?(seat: number): number;
   onEmoji?(emoji: string): void;
   banner?: string | null;
+  /** Called once when the game ends. `won` is true when a human seat finished first against bots. */
+  onGameOver?(won: boolean): void;
 }
 
 export function GameView(props: GameViewProps) {
@@ -130,6 +132,13 @@ export function GameView(props: GameViewProps) {
   }, [secondsLeft, ctl.canAct]);
 
   const over = state.phase === "over";
+  const reported = useRef(false);
+  useEffect(() => {
+    if (!over || reported.current) return;
+    reported.current = true;
+    const first = state.finished[0];
+    props.onGameOver?.(!ctl.local.every(Boolean) && first !== undefined && !!ctl.local[first]);
+  }, [over]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (over) {
       const id = setTimeout(() => {

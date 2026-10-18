@@ -32,6 +32,8 @@ const en = {
   botThinking: "{name} is thinking…",
   rolledSix: "Six! Roll again",
   captured: "Captured! Bonus roll",
+  tokenHome: "Home! Bonus roll",
+  marks: "Token shapes",
   threeSixes: "Three sixes, turn lost",
   noMoves: "No moves",
   wins: "{name} wins!",
@@ -92,6 +94,8 @@ const en = {
   rulesText:
     "Roll a 6 to bring a token out. Land on an opponent to send it home and roll again. Stars and start squares are safe. Three 6s in a row lose the turn. You need the exact number to reach the centre.",
   close: "Close",
+  statsLine: "{won} wins in {played} games",
+  streakLine: "🔥 {n}-day streak",
   copyProof: "Copy proof",
   reactions: "Reactions",
 } as const;
@@ -128,6 +132,8 @@ const ne: Record<StringKey, string> = {
   botThinking: "{name} सोच्दैछ…",
   rolledSix: "छक्का! फेरि फाल्नुहोस्",
   captured: "काटियो! थप पालो",
+  tokenHome: "घर पुग्यो! थप पालो",
+  marks: "गोटीका आकार",
   threeSixes: "तीन छक्का, पालो गयो",
   noMoves: "चाल छैन",
   wins: "{name} जित्यो!",
@@ -188,6 +194,8 @@ const ne: Record<StringKey, string> = {
   rulesText:
     "गोटी बाहिर निकाल्न ६ फाल्नुहोस्। विपक्षीको गोटीमा पुगे त्यो घर फर्कन्छ र तपाईं फेरि फाल्नुहुन्छ। तारा र सुरु कोठा सुरक्षित छन्। लगातार तीन ६ आए पालो जान्छ। बीचमा पुग्न ठ्याक्कै अंक चाहिन्छ।",
   close: "बन्द",
+  statsLine: "{played} खेलमा {won} जित",
+  streakLine: "🔥 {n} दिनको लगातार खेल",
   copyProof: "प्रमाण कपी",
   reactions: "प्रतिक्रिया",
 };
