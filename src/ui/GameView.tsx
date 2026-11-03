@@ -37,6 +37,7 @@ export function GameView(props: GameViewProps) {
   const [display, setDisplay] = useState<number[][]>(state.tokens);
   const [hopping, setHopping] = useState<string | null>(null);
   const [bursts, setBursts] = useState<Burst[]>([]);
+  const [fairOpen, setFairOpen] = useState(false);
   const [rolling, setRolling] = useState(false);
   const [toast, setToast] = useState<StringKey | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -185,10 +186,10 @@ export function GameView(props: GameViewProps) {
         <button type="button" className="icon-btn" onClick={props.onExit} aria-label={t(lang, "leave")}>
           <Icon name="back" size={20} />
         </button>
-        <div className="fair-chip" title={t(lang, "fairInfo")}>
+        <button type="button" className="fair-chip" aria-haspopup="dialog" onClick={() => setFairOpen(true)} title={t(lang, "fairInfo")}>
           <Icon name="shield" size={16} /> {t(lang, "fairChip")}
           <code>{ctl.fair.serverSeedHash.slice(0, 10) || "…"}</code>
-        </div>
+        </button>
         {state.mode === "quick" && <span className="mode-chip"><Icon name="bolt" size={16} /> {t(lang, "quickMode")}</span>}
         {state.teams && <span className="mode-chip"><Icon name="team" size={16} /> {t(lang, "teamsMode")}</span>}
         {state.master && (
@@ -270,6 +271,11 @@ export function GameView(props: GameViewProps) {
             </span>
           )}
           {canRoll && <span>{t(lang, "tapToRoll")}</span>}
+          {state.rolls.length > 0 && (
+            <small className="roll-seal">
+              {t(lang, "rollCount", { n: localDigits(lang, state.rolls.length) })} · {t(lang, "fairSealed", { hash: ctl.fair.serverSeedHash.slice(0, 6) })}
+            </small>
+          )}
         </div>
       </div>
 
@@ -280,6 +286,21 @@ export function GameView(props: GameViewProps) {
               {e}
             </button>
           ))}
+        </div>
+      )}
+
+      {fairOpen && (
+        <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "fairHow")} onClick={() => setFairOpen(false)}>
+          <div className="results-card" onClick={(e) => e.stopPropagation()}>
+            <h2>{t(lang, "fairHow")}</h2>
+            <p className="fair-hash">
+              <code>{ctl.fair.serverSeedHash || "…"}</code>
+            </p>
+            <p>{t(lang, "fairHowBody")}</p>
+            <button type="button" className="btn primary" onClick={() => setFairOpen(false)}>
+              {t(lang, "close")}
+            </button>
+          </div>
         </div>
       )}
 
