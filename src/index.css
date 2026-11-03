@@ -1321,4 +1321,16 @@ html.large-text {
 }
 .forget {
   align-self: center;
+/* Bot reasoning line and tier notes. */
+.bot-note {
+  display: block;
+  color: var(--gold);
+  font-size: 0.8rem;
+}
+.seg-note {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+.seg:has(.seg-note) {
+  flex-wrap: wrap;
 }

@@ -166,6 +166,7 @@ export default function App() {
                   {t(lang, d as StringKey)}
                 </button>
               ))}
+              <small className="seg-note">{t(lang, `${settings.difficulty}Sub`)}</small>
             </fieldset>
           )}
           <label className="switch">
