@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { t, type Lang } from "../game/i18n";
 import { QUIET_ZONE, qrPath } from "../game/qr";
 import { inviteLink, whatsappUrl } from "../game/share";
@@ -22,6 +22,8 @@ export interface OnlineProps {
   teams: boolean;
   onExit(): void;
   onVerify(p: Proof): void;
+  /** Called once when the game starts, with the other human players' names. */
+  onPlayers?(names: string[]): void;
 }
 
 export function OnlineRoomScreen(p: OnlineProps) {
@@ -30,6 +32,13 @@ export function OnlineRoomScreen(p: OnlineProps) {
   const [master, setMaster] = useState(p.master);
   const [teams, setTeams] = useState(p.teams);
   const [copied, setCopied] = useState(false);
+  const reported = useRef(false);
+  const started = room?.game != null;
+  useEffect(() => {
+    if (!started || !room || reported.current) return;
+    reported.current = true;
+    p.onPlayers?.(room.seats.filter((s, i) => !s.bot && i !== room.you).map((s) => s.name));
+  }, [started, room, p]);
   const lang = p.lang;
   const link = inviteLink(p.code, window.location);
   const shareText = `${t(lang, "shareText", { code: p.code })} ${link}`;

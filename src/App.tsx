@@ -7,6 +7,7 @@ import { useInstallPrompt } from "./game/install";
 import { BOARD_THEMES, loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
+import { forgetFriend, loadFriends, rememberPlayers, saveFriends, type Friend } from "./game/friends";
 import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
 import { needsOnboarding } from "./game/onboarding";
@@ -36,6 +37,13 @@ export default function App() {
   const [rules, setRules] = useState(false);
   const [onboarding, setOnboarding] = useState(() => needsOnboarding(settings.onboarded, screen.name === "online"));
   const [stats, setStats] = useState(loadStats);
+  const [friends, setFriends] = useState<Friend[]>(loadFriends);
+  const changeFriends = (fn: (f: Friend[]) => Friend[]) =>
+    setFriends((f) => {
+      const next = fn(f);
+      saveFriends(next);
+      return next;
+    });
   const onGameOver = (won: boolean) =>
     setStats((s) => {
       const next = recordGame(s, won, dayKey(new Date()));
@@ -117,6 +125,7 @@ export default function App() {
         teams={settings.teams}
         onExit={() => setScreen({ name: "home" })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
+        onPlayers={(names) => changeFriends((f) => rememberPlayers(f, names, Date.now()))}
       />
     );
   }
@@ -299,6 +308,28 @@ export default function App() {
           )}
         </div>
       </nav>
+      {WS_URL && friends.length > 0 && (
+        <section className="friends" aria-labelledby="friends-h">
+          <h2 id="friends-h">{t(lang, "playAgainWith")}</h2>
+          <ul>
+            {friends.map((f) => (
+              <li key={f.name}>
+                <button type="button" className="friend" onClick={() => (tap(), setScreen({ name: "online", code: newRoomCode(), create: true }))}>
+                  <span className="avatar">{f.name.slice(0, 1).toUpperCase()}</span>
+                  <span>
+                    <strong>{f.name}</strong>
+                    <small>{t(lang, "gamesTogether", { n: f.games })}</small>
+                  </span>
+                </button>
+                <button type="button" className="icon-btn forget" aria-label={t(lang, "forget", { name: f.name })} onClick={() => changeFriends((l) => forgetFriend(l, f.name))}>
+                  ×
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="muted small">{t(lang, "friendsNote")}</p>
+        </section>
+      )}
       <footer className="foot">
         <button type="button" className="btn small ghost" onClick={() => setRules(true)}>
           {t(lang, "rules")}
