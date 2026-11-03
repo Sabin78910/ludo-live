@@ -1,5 +1,6 @@
-import { BASE, type GameEvent } from "../engine/rules";
-import { CAPTURE_MS, ROLL_MS, STEP_MS, animDuration, buildFrames, eventToast } from "./anim";
+import { BASE, FINISH, type GameEvent } from "../engine/rules";
+import { CAPTURE_MS, ROLL_MS, STEP_MS, animDuration, buildFrames, eventToast, homeCount, hopPitch } from "./anim";
+import { hapticFor } from "./sound";
 import { allKeys, localDigits, t, tableFor } from "./i18n";
 import { defaultSettings, detectLang, parseSettings } from "./settings";
 import { inviteLink, roomFromSearch, roomSocketUrl, stripRoomParam, whatsappUrl } from "./share";
@@ -99,5 +100,36 @@ describe("animation frames", () => {
     expect(eventToast([{ type: "bonus", player: 0, reason: "six" }])).toBe("rolledSix");
     expect(eventToast([{ type: "home", player: 0, token: 1 }, { type: "bonus", player: 0, reason: "home" }])).toBe("tokenHome");
     expect(eventToast([{ type: "turn", player: 1 }])).toBeNull();
+  });
+});
+
+describe("move feel", () => {
+  it("numbers each hop so the sound can climb along the path", () => {
+    const ev: GameEvent[] = [{ type: "move", player: 0, token: 0, from: 3, to: 6, path: [4, 5, 6] }];
+    const fx = buildFrames([[3, BASE, BASE, BASE]], ev).map((f) => f.fx[0]);
+    expect(fx.map((x) => (x.kind === "hop" ? [x.step, x.steps] : null))).toEqual([
+      [0, 3],
+      [1, 3],
+      [2, 3],
+    ]);
+  });
+  it("raises hop pitch from first cell to landing, by a fifth at most", () => {
+    expect(hopPitch(0, 6)).toBe(520);
+    expect(hopPitch(3, 6)).toBeGreaterThan(hopPitch(1, 6));
+    expect(hopPitch(5, 6)).toBeCloseTo(520 * Math.pow(2, 7 / 12));
+    expect(hopPitch(9, 6)).toBe(hopPitch(5, 6));
+    expect(hopPitch(0, 1)).toBe(hopPitch(5, 6));
+  });
+  it("counts tokens home for the progress pips", () => {
+    expect(homeCount([BASE, 10, FINISH, FINISH])).toBe(2);
+    expect(homeCount([BASE, BASE, BASE, BASE])).toBe(0);
+  });
+  it("buzzes when the dice lands, not while it tumbles", () => {
+    expect(hapticFor("dice")).toBeUndefined();
+    expect(hapticFor("land")).toBeDefined();
+  });
+  it("describes home progress in both languages", () => {
+    expect(t("en", "tokensHome", { n: 2 })).toBe("2 of 4 tokens home");
+    expect(t("ne", "tokensHome", { n: localDigits("ne", 2) })).toContain("२");
   });
 });

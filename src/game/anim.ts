@@ -1,12 +1,12 @@
 // Turns engine events into animation frames: one frame per cell hopped, then captures fly home.
-import { BASE, type GameEvent } from "../engine/rules";
+import { BASE, FINISH, type GameEvent } from "../engine/rules";
 
 export const ROLL_MS = 600;
 export const STEP_MS = 160;
 export const CAPTURE_MS = 420;
 
 export type FrameFx =
-  | { kind: "hop"; player: number; token: number; last: boolean }
+  | { kind: "hop"; player: number; token: number; last: boolean; step: number; steps: number }
   | { kind: "enter"; player: number; token: number }
   | { kind: "capture"; player: number; victim: number; token: number; cell: number }
   | { kind: "home"; player: number; token: number };
@@ -31,7 +31,7 @@ export function buildFrames(start: number[][], events: GameEvent[]): Frame[] {
         e.path.forEach((p, i) => {
           cur = cur.map((t) => [...t]);
           cur[e.player][e.token] = p;
-          frames.push({ tokens: cur, fx: [{ kind: "hop", player: e.player, token: e.token, last: i === e.path.length - 1 }], ms: STEP_MS });
+          frames.push({ tokens: cur, fx: [{ kind: "hop", player: e.player, token: e.token, last: i === e.path.length - 1, step: i, steps: e.path.length }], ms: STEP_MS });
         });
       }
     } else if (e.type === "capture") {
@@ -57,6 +57,20 @@ export function animDuration(events: GameEvent[], start: number[][] | null = nul
 function emptyFor(events: GameEvent[]): number[][] {
   const players = Math.max(0, ...events.map((e) => ("player" in e ? e.player : 0)), ...events.map((e) => (e.type === "capture" ? e.victim : 0))) + 1;
   return Array.from({ length: players }, () => [BASE, BASE, BASE, BASE]);
+}
+
+/**
+ * Pitch for each hop along a move: climbs a musical fifth from the first cell to the last, so a long
+ * move builds anticipation and the landing feels like an arrival rather than another step.
+ */
+export function hopPitch(step: number, steps: number): number {
+  const k = steps <= 1 ? 1 : Math.min(1, Math.max(0, step / (steps - 1)));
+  return 520 * Math.pow(2, (7 / 12) * k);
+}
+
+/** How many of a player's tokens have reached home, for the progress pips on each player chip. */
+export function homeCount(tokens: readonly number[]): number {
+  return tokens.filter((p) => p === FINISH).length;
 }
 
 /** The status message key for the latest events. */
