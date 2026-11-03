@@ -156,7 +156,7 @@ export class RoomCore {
     return { ok: true };
   }
 
-  start(seat: number, quick: boolean, now: number): ActionResult {
+  start(seat: number, quick: boolean, now: number, master = false): ActionResult {
     const d = this.data;
     if (seat !== d.host) return fail("not_allowed", "Only the host can start");
     if (d.status !== "lobby") return fail("started", "The game has started");
@@ -171,7 +171,7 @@ export class RoomCore {
     d.playerSeats = d.seats.map((_, i) => i);
     d.game = createGame(
       d.seats.map((s, i) => ({ color: colors[i], name: s.name })),
-      { mode: d.mode },
+      { mode: d.mode, master },
     );
     d.status = "playing";
     this.emit([{ type: "turn", player: 0 }], now);

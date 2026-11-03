@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { tokenPosition, TRACK } from "../engine/board";
 import { EMOJIS } from "../engine/protocol";
-import { legalMoves, type Color } from "../engine/rules";
+import { homeLocked, legalMoves, type Color } from "../engine/rules";
 import { ROLL_MS, buildFrames, eventToast, homeCount, hopPitch } from "../game/anim";
 import type { Controller } from "../game/controller";
 import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
@@ -187,6 +187,11 @@ export function GameView(props: GameViewProps) {
           <code>{ctl.fair.serverSeedHash.slice(0, 10) || "…"}</code>
         </div>
         {state.mode === "quick" && <span className="mode-chip">⚡ {t(lang, "quickMode")}</span>}
+        {state.master && (
+          <span className="mode-chip">
+            🎯 {homeLocked(state, state.current) ? t(lang, "masterLocked") : t(lang, "masterRule")}
+          </span>
+        )}
       </header>
       {props.banner && <div className="banner">{props.banner}</div>}
 

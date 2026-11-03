@@ -13,6 +13,8 @@ export interface Settings {
   difficulty: Difficulty;
   players: number;
   quick: boolean;
+  /** Master rule: capture before entering home. */
+  master: boolean;
   /** This device's contribution to the fair-dice seeds. */
   clientSeed: string;
 }
@@ -29,6 +31,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     difficulty: "normal",
     players: 4,
     quick: false,
+    master: false,
     clientSeed: randomHex(8),
   };
 }
@@ -50,6 +53,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       difficulty: o.difficulty === "easy" || o.difficulty === "hard" || o.difficulty === "normal" ? o.difficulty : fallback.difficulty,
       players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
+      master: typeof o.master === "boolean" ? o.master : fallback.master,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };
   } catch {

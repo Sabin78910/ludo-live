@@ -34,7 +34,8 @@ describe("parseClientMsg", () => {
     expect(parseClientMsg('{"t":"roll"}')).toEqual({ t: "roll" });
     expect(parseClientMsg('{"t":"move","token":2}')).toEqual({ t: "move", token: 2 });
     expect(parseClientMsg('{"t":"emoji","emoji":"🔥"}')).toEqual({ t: "emoji", emoji: "🔥" });
-    expect(parseClientMsg('{"t":"start","quick":true}')).toEqual({ t: "start", quick: true });
+    expect(parseClientMsg('{"t":"start","quick":true}')).toEqual({ t: "start", quick: true, master: false });
+    expect(parseClientMsg('{"t":"start","master":true}')).toEqual({ t: "start", quick: false, master: true });
     expect(parseClientMsg('{"t":"hello","name":"A","clientSeed":"x","create":true}')).toMatchObject({ t: "hello", name: "A", create: true });
   });
   it("rejects malformed or unknown input", () => {

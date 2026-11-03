@@ -40,7 +40,7 @@ export function cleanName(name: unknown, fallback = "Player"): string {
 
 export type ClientMsg =
   | { t: "hello"; name: string; clientSeed: string; token?: string; create?: boolean }
-  | { t: "start"; quick?: boolean }
+  | { t: "start"; quick?: boolean; master?: boolean }
   | { t: "addBot" }
   | { t: "removeBot"; seat: number }
   | { t: "roll" }
@@ -111,7 +111,7 @@ export function parseClientMsg(raw: unknown): ClientMsg | null {
         create: o.create === true,
       };
     case "start":
-      return { t: "start", quick: o.quick === true };
+      return { t: "start", quick: o.quick === true, master: o.master === true };
     case "addBot":
     case "roll":
     case "ping":

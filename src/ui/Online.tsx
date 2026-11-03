@@ -16,6 +16,7 @@ export interface OnlineProps {
   haptics: boolean;
   reduced: boolean;
   quick: boolean;
+  master: boolean;
   onExit(): void;
   onVerify(p: Proof): void;
 }
@@ -23,6 +24,7 @@ export interface OnlineProps {
 export function OnlineRoomScreen(p: OnlineProps) {
   const { room, status, error, reactions, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
   const [quick, setQuick] = useState(p.quick);
+  const [master, setMaster] = useState(p.master);
   const [copied, setCopied] = useState(false);
   const lang = p.lang;
   const link = inviteLink(p.code, window.location);
@@ -148,7 +150,13 @@ export function OnlineRoomScreen(p: OnlineProps) {
                   ⚡ {t(lang, "quickMode")} <small>{t(lang, "quickModeSub")}</small>
                 </span>
               </label>
-              <button type="button" className="btn primary big" disabled={room.seats.length < 2} onClick={() => send({ t: "start", quick })}>
+              <label className="switch">
+                <input type="checkbox" checked={master} onChange={(e) => setMaster(e.target.checked)} />
+                <span>
+                  🎯 {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
+                </span>
+              </label>
+              <button type="button" className="btn primary big" disabled={room.seats.length < 2} onClick={() => send({ t: "start", quick, master })}>
                 {room.seats.length < 2 ? t(lang, "needTwo") : t(lang, "start")}
               </button>
             </>

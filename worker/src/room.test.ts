@@ -91,6 +91,12 @@ describe("RoomCore lobby", () => {
     expect(room.data.game!.tokens.map((t) => t[0])).toEqual([0, 0]);
     expect(room.view(0, 0).mode).toBe("quick");
   });
+  it("starts with the Master rule when the host asks for it", async () => {
+    const { room } = await lobby(2);
+    room.start(0, false, 0, true);
+    expect(room.data.game!.master).toBe(true);
+    expect(room.view(0, 0).game!.master).toBe(true);
+  });
 });
 
 describe("RoomCore play", () => {

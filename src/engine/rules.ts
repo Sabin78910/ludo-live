@@ -48,6 +48,10 @@ export interface GameState {
   /** Player indices in finishing order (1st place first). */
   finished: number[];
   rolls: RollRecord[];
+  /** Master rule: a player must capture before any token may enter its home column. */
+  master?: boolean;
+  /** captured[playerIndex] = has captured at least once (tracked for the Master rule). */
+  captured?: boolean[];
 }
 
 export type GameEvent =
@@ -70,6 +74,8 @@ export interface Step {
 export interface GameOptions {
   mode?: Mode;
   tokensPerPlayer?: number;
+  /** Master rule: capture an opponent before any token may enter the home column. Works with either mode. */
+  master?: boolean;
 }
 
 export class RuleError extends Error {}
@@ -93,6 +99,8 @@ export function createGame(players: Player[], opts: GameOptions = {}): GameState
     rollCount: 0,
     finished: [],
     rolls: [],
+    master: opts.master === true,
+    captured: players.map(() => false),
   };
 }
 
@@ -123,12 +131,24 @@ export function target(progress: number, roll: number): number | null {
   return to > FINISH ? null : to; // exact roll needed to finish
 }
 
+/** True while the Master rule keeps this player's tokens out of the home column. */
+export function homeLocked(state: GameState, player: number): boolean {
+  return state.master === true && state.captured?.[player] !== true;
+}
+
+/** Like `target`, but applies the Master rule: a locked token cannot step past the last track cell. */
+export function targetFor(state: GameState, player: number, progress: number, roll: number): number | null {
+  const to = target(progress, roll);
+  if (to !== null && to > LAST_TRACK && homeLocked(state, player)) return null;
+  return to;
+}
+
 export function legalMoves(state: GameState): number[] {
   if (state.phase !== "move" || state.dice === null) return [];
   const mine = state.tokens[state.current];
   const out: number[] = [];
   mine.forEach((p, i) => {
-    if (target(p, state.dice!) !== null) out.push(i);
+    if (targetFor(state, state.current, p, state.dice!) !== null) out.push(i);
   });
   return out;
 }
@@ -157,6 +177,7 @@ function clone(state: GameState): GameState {
     tokens: state.tokens.map((t) => [...t]),
     finished: [...state.finished],
     rolls: [...state.rolls],
+    captured: state.captured ? [...state.captured] : undefined,
   };
 }
 
@@ -224,7 +245,7 @@ export function applyMove(state: GameState, token: number): Step {
   const me = state.current;
   const from = state.tokens[me]?.[token];
   if (from === undefined) throw new RuleError("No such token");
-  const to = target(from, state.dice);
+  const to = targetFor(state, me, from, state.dice);
   if (to === null) throw new RuleError("That token cannot move");
   const s = clone(state);
   const events: GameEvent[] = [];
@@ -249,6 +270,8 @@ export function applyMove(state: GameState, token: number): Step {
       });
     });
   }
+
+  if (captured) s.captured = s.players.map((_, i) => i === me || s.captured?.[i] === true);
 
   const reachedHome = to === FINISH;
   if (reachedHome) events.push({ type: "home", player: me, token });
