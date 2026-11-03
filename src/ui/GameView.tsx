@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { tokenPosition, TRACK } from "../engine/board";
 import { EMOJIS } from "../engine/protocol";
-import { homeLocked, legalMoves, winners, type Color } from "../engine/rules";
+import { homeLocked, legalMoves, winners } from "../engine/rules";
 import { ROLL_MS, buildFrames, eventToast, homeCount, hopPitch } from "../game/anim";
 import type { Controller } from "../game/controller";
 import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
+import { tableRows } from "../game/table";
 import { play, vibrate, type Sfx } from "../game/sound";
 import type { Reaction } from "../online/useOnlineRoom";
 import { Board, ROTATION, type Burst } from "./Board";
@@ -179,6 +180,57 @@ export function GameView(props: GameViewProps) {
 
   const reactionsFor = (player: number) =>
     (props.reactions ?? []).filter((r) => (props.playerOfSeat ? props.playerOfSeat(r.seat) : -1) === player);
+  const rows = tableRows(colors, rotation);
+
+  // A player's seat at the table: avatar ring, name, tokens home, and the dice when it is their turn.
+  const pod = (i: number, right: boolean) => {
+    const p = state.players[i];
+    const place = state.finished.indexOf(i);
+    const active = i === cur && !over;
+    const home = homeCount(display[i] ?? []);
+    return (
+      <li key={p.color} className={`pod pc-${p.color}${active ? " active" : ""}${right ? " right" : ""}`}>
+        <span className="avatar-ring" style={active && secondsLeft !== null && ctl.deadline ? ({ "--left": `${Math.min(1, secondsLeft / 20)}` } as React.CSSProperties) : undefined}>
+          <span className="pod-avatar">{ctl.bots[i] ? <Icon name="bot" size={22} /> : (names[i] || "?").slice(0, 1).toUpperCase()}</span>
+        </span>
+        <span className="pod-info">
+          <span className="pname">{names[i]}</span>
+          <span className="pod-meta">
+            {ctl.bots[i] && <span className="tag">{t(lang, "bot")}</span>}
+            {ctl.offline?.[i] && !ctl.bots[i] && <span className="tag warn">{t(lang, "offline")}</span>}
+            {place >= 0 && <span className="tag gold">{t(lang, `place${place + 1}` as StringKey)}</span>}
+            <span className="pips" aria-label={t(lang, "tokensHome", { n: localDigits(lang, home) })}>
+              {[0, 1, 2, 3].map((k) => (
+                <i key={k} className={k < home ? "on" : undefined} />
+              ))}
+            </span>
+            {active && secondsLeft !== null && (
+              <span className={`timer${secondsLeft <= 5 ? " low" : ""}`}>{t(lang, "secondsLeft", { s: secondsLeft })}</span>
+            )}
+          </span>
+        </span>
+        {active && (
+          <Dice
+            value={diceValue}
+            spin={ctl.seq}
+            rolling={rolling}
+            enabled={canRoll}
+            onRoll={() => {
+              setRolling(true);
+              ctl.roll();
+            }}
+            label={t(lang, "tapToRoll")}
+            color={p.color}
+          />
+        )}
+        {reactionsFor(i).map((r) => (
+          <span key={r.id} className="reaction" aria-hidden="true">
+            {r.emoji}
+          </span>
+        ))}
+      </li>
+    );
+  };
 
   return (
     <div className="game">
@@ -200,33 +252,8 @@ export function GameView(props: GameViewProps) {
       </header>
       {props.banner && <div className="banner">{props.banner}</div>}
 
-      <ol className="players" aria-label={t(lang, "players")}>
-        {state.players.map((p, i) => {
-          const place = state.finished.indexOf(i);
-          const active = i === cur && !over;
-          return (
-            <li key={p.color} className={`pchip pc-${p.color}${active ? " active" : ""}`}>
-              <span className="pdot" />
-              <span className="pname">{names[i]}</span>
-              {ctl.bots[i] && <span className="tag">{t(lang, "bot")}</span>}
-              {ctl.offline?.[i] && !ctl.bots[i] && <span className="tag warn">{t(lang, "offline")}</span>}
-              <span className="pips" aria-label={t(lang, "tokensHome", { n: localDigits(lang, homeCount(display[i] ?? [])) })}>
-                {[0, 1, 2, 3].map((k) => (
-                  <i key={k} className={k < homeCount(display[i] ?? []) ? "on" : undefined} />
-                ))}
-              </span>
-              {place >= 0 && <span className="tag gold">{t(lang, `place${place + 1}` as StringKey)}</span>}
-              {active && secondsLeft !== null && (
-                <span className={`timer${secondsLeft <= 5 ? " low" : ""}`}>{t(lang, "secondsLeft", { s: secondsLeft })}</span>
-              )}
-              {reactionsFor(i).map((r) => (
-                <span key={r.id} className="reaction" aria-hidden="true">
-                  {r.emoji}
-                </span>
-              ))}
-            </li>
-          );
-        })}
+      <ol className="pods pods-top" aria-label={t(lang, "players")}>
+        {rows.top.map((i, k) => (i === null ? <li key={`e${k}`} className="pod-empty" aria-hidden="true" role="presentation" /> : pod(i, k === 1)))}
       </ol>
 
       <div className={`stage${shake && !reduced ? ` shake-${shake % 2}` : ""}`}>
@@ -250,33 +277,22 @@ export function GameView(props: GameViewProps) {
         )}
       </div>
 
-      <div className={`dock dk-${colors[cur]}`}>
-        <Dice
-          value={diceValue}
-          spin={ctl.seq}
-          rolling={rolling}
-          enabled={canRoll}
-          onRoll={() => {
-            setRolling(true);
-            ctl.roll();
-          }}
-          label={t(lang, "tapToRoll")}
-          color={colors[cur] as Color}
-        />
-        <div className="dock-text">
-          <strong>{status}</strong>
-          {ctl.botNote && !over && (
-            <span className="bot-note" aria-live="polite">
-              {t(lang, `why_${ctl.botNote.reason}`, { name: names[ctl.botNote.player] })}
-            </span>
-          )}
-          {canRoll && <span>{t(lang, "tapToRoll")}</span>}
-          {state.rolls.length > 0 && (
-            <small className="roll-seal">
-              {t(lang, "rollCount", { n: localDigits(lang, state.rolls.length) })} · {t(lang, "fairSealed", { hash: ctl.fair.serverSeedHash.slice(0, 6) })}
-            </small>
-          )}
-        </div>
+      <ol className="pods pods-bottom" aria-label={t(lang, "players")}>
+        {rows.bottom.map((i, k) => (i === null ? <li key={`e${k}`} className="pod-empty" aria-hidden="true" role="presentation" /> : pod(i, k === 1)))}
+      </ol>
+
+      <div className="status-line">
+        <strong>{status}</strong>
+        {ctl.botNote && !over && (
+          <span className="bot-note" aria-live="polite">
+            {t(lang, `why_${ctl.botNote.reason}`, { name: names[ctl.botNote.player] })}
+          </span>
+        )}
+        {state.rolls.length > 0 && (
+          <small className="roll-seal">
+            {t(lang, "rollCount", { n: localDigits(lang, state.rolls.length) })} · {t(lang, "fairSealed", { hash: ctl.fair.serverSeedHash.slice(0, 6) })}
+          </small>
+        )}
       </div>
 
       {props.onEmoji && (

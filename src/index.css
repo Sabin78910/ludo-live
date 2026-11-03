@@ -1471,3 +1471,126 @@ button.fair-chip {
 .forget {
   align-self: center;
 }
+
+/* Table: each player sits at the corner of the board beside their own yard, dice in the active seat. */
+.pods {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.pod {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 64px;
+  padding: 8px 10px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--glass-line);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s, border-color 0.35s;
+}
+.pod.right {
+  flex-direction: row-reverse;
+  text-align: right;
+}
+.pod.right .pod-meta {
+  justify-content: flex-end;
+}
+.pod.active {
+  border-color: var(--c);
+  box-shadow: 0 0 0 2px var(--c), 0 10px 30px color-mix(in srgb, var(--c) 35%, transparent);
+  transform: translateY(-2px);
+}
+.avatar-ring {
+  --left: 1;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: conic-gradient(var(--c) calc(var(--left) * 360deg), rgba(255, 255, 255, 0.12) 0);
+}
+.pod-avatar {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, var(--hi, #fff) 0%, var(--c) 55%, color-mix(in srgb, var(--c) 60%, #000) 100%);
+  color: #fff;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.15rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 -3px 6px rgba(0, 0, 0, 0.3), 0 0 0 2px var(--bg);
+}
+.pc-red .pod-avatar {
+  --hi: var(--red-hi);
+}
+.pc-green .pod-avatar {
+  --hi: var(--green-hi);
+}
+.pc-yellow .pod-avatar {
+  --hi: var(--yellow-hi);
+}
+.pc-blue .pod-avatar {
+  --hi: var(--blue-hi);
+}
+.pod-info {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 4px;
+}
+.pod .pname {
+  font-family: var(--display);
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.pod-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pod .pips {
+  margin-left: 0;
+}
+.pod .dice-btn {
+  width: 60px;
+  height: 60px;
+  margin: -6px 0;
+}
+.pod .dice-scene {
+  margin: 2px;
+}
+.pod-empty {
+  min-height: 64px;
+}
+.status-line {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  text-align: center;
+  min-height: 3.2em;
+}
+.status-line strong {
+  font-family: var(--display);
+  font-size: 1.1rem;
+}
+@media (max-width: 380px) {
+  .pod {
+    gap: 6px;
+    padding: 6px 8px;
+  }
+  .pod .pips {
+    display: none;
+  }
+}
