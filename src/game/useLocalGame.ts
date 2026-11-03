@@ -1,6 +1,6 @@
 // Offline games (vs bots, pass-and-play). Uses the same provably fair dealer as the server.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { chooseMove, type Difficulty } from "../engine/bot";
+import { chooseMove, explainMove, type Difficulty, type MoveReason } from "../engine/bot";
 import { FairDealer } from "../engine/fair";
 import { applyMove, applyRoll, autoMove, createGame, type GameEvent, type GameState, type Player } from "../engine/rules";
 import { animDuration } from "./anim";
@@ -19,6 +19,7 @@ export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: str
   });
   const [dealer, setDealer] = useState<FairDealer | null>(null);
   const [busy, setBusy] = useState(false);
+  const [botNote, setBotNote] = useState<{ player: number; reason: MoveReason } | null>(null);
   const clientSeeds = useRef([clientSeed]).current;
   const snapRef = useRef(snap);
   snapRef.current = snap;
@@ -46,10 +47,11 @@ export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: str
     const step = applyRoll(s, value);
     const only = autoMove(step.state);
     if (step.state.phase === "move" && only !== null) {
+      if (seats[s.current]?.bot) setBotNote({ player: s.current, reason: explainMove(step.state, only) });
       const m = applyMove(step.state, only);
       commit(m.state, [...step.events, ...m.events]);
     } else commit(step.state, step.events);
-  }, [dealer, clientSeeds, commit]);
+  }, [dealer, clientSeeds, commit, seats]);
 
   const doMove = useCallback(
     (token: number) => {
@@ -73,7 +75,11 @@ export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: str
     const id = setTimeout(() => {
       const s = snapRef.current.state;
       if (s.phase === "roll") void doRoll();
-      else if (s.phase === "move") doMove(chooseMove(s, botLevel));
+      else if (s.phase === "move") {
+        const token = chooseMove(s, botLevel);
+        setBotNote({ player: s.current, reason: explainMove(s, token) });
+        doMove(token);
+      }
     }, reduced ? 120 : BOT_THINK_MS);
     return () => clearTimeout(id);
   }, [busy, dealer, botLevel, state, doRoll, doMove, reduced]);
@@ -94,6 +100,7 @@ export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: str
       if (isHumanTurn && !busy) doMove(t);
     },
     deadline: null,
+    botNote,
     fair: {
       serverSeedHash: dealer?.serverSeedHash ?? "",
       clientSeeds,
