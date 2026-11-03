@@ -1282,3 +1282,43 @@ html.large-text {
   background: #0e1433;
   box-shadow: inset 0 0 0 2px #3b82f6, 0 0 8px #3b82f6;
 }
+
+/* Recent players */
+.friends {
+  margin-top: 20px;
+}
+.friends h2 {
+  font-size: 1.1rem;
+}
+.friends ul {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.friends li {
+  display: flex;
+  gap: 8px;
+}
+.friend {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 8px 12px;
+  text-align: left;
+  border-radius: 16px;
+  border: 1px solid var(--gold-line, var(--glass-line));
+  background: var(--glass);
+  cursor: pointer;
+}
+.friend small {
+  display: block;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.forget {
+  align-self: center;
+}
