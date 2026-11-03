@@ -35,4 +35,4 @@ WebSocket URL from the `VITE_WS_URL` repo variable at build time; without it, on
 Deep navy `#0B1026` with glass, classic Ludo red `#EF3B4F`, green `#22C55E`, yellow `#FACC15`, blue `#3B82F6`,
 gold `#F5C451` for wins. Outfit (display) + Inter + Noto Sans Devanagari. 44 px touch targets, AA contrast.
 
-Screenshots: `docs/screenshots/`. Privacy: https://sabin78910.github.io/privacy-policy/
+Screenshots: `docs/screenshots/`. Play Store package: `store/` and `docs/LAUNCH.md`. Privacy: https://sabin78910.github.io/privacy-policy/#ludo-live
