@@ -265,6 +265,11 @@ export function GameView(props: GameViewProps) {
         />
         <div className="dock-text">
           <strong>{status}</strong>
+          {ctl.botNote && !over && (
+            <span className="bot-note" aria-live="polite">
+              {t(lang, `why_${ctl.botNote.reason}`, { name: names[ctl.botNote.player] })}
+            </span>
+          )}
           {canRoll && <span>{t(lang, "tapToRoll")}</span>}
           {state.rolls.length > 0 && (
             <small className="roll-seal">
