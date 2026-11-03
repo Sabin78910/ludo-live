@@ -20,6 +20,8 @@ export interface Settings {
   master: boolean;
   /** 2v2 teams when 4 play. */
   teams: boolean;
+  /** First-run onboarding finished or skipped. */
+  onboarded: boolean;
   /** Board finish. Cosmetic only, never affects play. */
   board: BoardTheme;
   /** Larger type across the app for low vision and older players. */
@@ -42,6 +44,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     quick: false,
     master: false,
     teams: false,
+    onboarded: false,
     board: "classic",
     largeText: false,
     clientSeed: randomHex(8),
@@ -67,6 +70,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       master: typeof o.master === "boolean" ? o.master : fallback.master,
       teams: typeof o.teams === "boolean" ? o.teams : fallback.teams,
+      onboarded: typeof o.onboarded === "boolean" ? o.onboarded : fallback.onboarded,
       board: BOARD_THEMES.includes(o.board as BoardTheme) ? (o.board as BoardTheme) : fallback.board,
       largeText: typeof o.largeText === "boolean" ? o.largeText : fallback.largeText,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,

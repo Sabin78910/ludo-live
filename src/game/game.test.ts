@@ -37,6 +37,8 @@ describe("settings", () => {
     expect(parseSettings(JSON.stringify({ master: "yes" }), fb).master).toBe(false);
     expect(parseSettings(JSON.stringify({ master: true }), fb).master).toBe(true);
     expect(parseSettings(JSON.stringify({ teams: true }), fb).teams).toBe(true);
+    expect(parseSettings(JSON.stringify({ onboarded: true }), fb).onboarded).toBe(true);
+    expect(fb.onboarded).toBe(false);
     expect(parseSettings(JSON.stringify({ board: "gold-plated" }), fb).board).toBe("classic");
     expect(parseSettings(JSON.stringify({ board: "marble", largeText: true }), fb)).toMatchObject({ board: "marble", largeText: true });
     expect(parseSettings(JSON.stringify({ largeText: 1 }), fb).largeText).toBe(false);
