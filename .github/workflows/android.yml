@@ -21,6 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
+      CAN_PUBLISH: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON != '' && secrets.KEYSTORE_BASE64 != '' }}
       VITE_WS_URL: ${{ vars.VITE_WS_URL }}
     steps:
       - uses: actions/checkout@v7
@@ -57,3 +58,32 @@ jobs:
         with:
           name: app-release-aab
           path: android/app/build/outputs/bundle/release/app-release.aab
+      # Upload to Google Play internal testing. Runs only on pushes to main, and only when both the
+      # upload key and the PLAY_SERVICE_ACCOUNT_JSON secret exist; otherwise it is skipped with a notice.
+      # See docs/PLAY-RELEASE.md for the one-time service account setup.
+      - name: Skip Play upload (secrets missing)
+        if: env.CAN_PUBLISH != 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: echo "::notice::Play upload skipped. Add PLAY_SERVICE_ACCOUNT_JSON and the KEYSTORE_* secrets to publish to internal testing."
+      - name: Upload to Play internal testing
+        id: play
+        if: env.CAN_PUBLISH == 'true' && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        continue-on-error: true
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.sabinkhanal.ludolive
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: completed
+      # An app that has never had a release rolled out is a "draft app", and Play only accepts
+      # draft releases for it. Retry as a draft so the bundle still lands; roll it out once in
+      # Play Console and later runs go straight to testers.
+      - name: Upload to Play internal testing as a draft
+        if: steps.play.outcome == 'failure'
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: com.sabinkhanal.ludolive
+          releaseFiles: android/app/build/outputs/bundle/release/app-release.aab
+          track: internal
+          status: draft
