@@ -530,6 +530,59 @@ a.btn {
 .pc-blue {
   --c: var(--blue);
 }
+.pips {
+  display: inline-flex;
+  gap: 3px;
+  margin-left: auto;
+}
+.pips i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1.5px solid var(--c);
+  opacity: 0.6;
+}
+.pips i.on {
+  background: var(--c);
+  opacity: 1;
+  box-shadow: 0 0 8px var(--c);
+  animation: pipIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes pipIn {
+  from {
+    transform: scale(2.4);
+  }
+}
+/* Two class names so back-to-back captures restart the animation. */
+.stage.shake-0,
+.stage.shake-1 {
+  animation: shake0 0.32s ease-out;
+}
+.stage.shake-1 {
+  animation-name: shake1;
+}
+@keyframes shake0 {
+  25% {
+    transform: translate(-5px, 2px);
+  }
+  50% {
+    transform: translate(4px, -3px);
+  }
+  75% {
+    transform: translate(-2px, 1px);
+  }
+}
+@keyframes shake1 {
+  25% {
+    transform: translate(5px, -2px);
+  }
+  50% {
+    transform: translate(-4px, 3px);
+  }
+  75% {
+    transform: translate(2px, -1px);
+  }
+}
 .pdot {
   width: 14px;
   height: 14px;

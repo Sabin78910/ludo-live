@@ -1,5 +1,5 @@
 // Tiny WebAudio synth (no audio files) plus haptics. Everything is best-effort and silent on failure.
-export type Sfx = "dice" | "hop" | "enter" | "capture" | "home" | "win" | "six" | "tick" | "tap";
+export type Sfx = "dice" | "land" | "hop" | "enter" | "capture" | "home" | "win" | "six" | "tick" | "tap";
 
 let ctx: AudioContext | null = null;
 
@@ -46,7 +46,8 @@ function noise(ac: AudioContext, at: number, dur: number, gain = 0.12, freq = 18
   src.start(at);
 }
 
-export function play(sfx: Sfx): void {
+/** `pitch` lets a hop climb along its path; other sounds ignore it. */
+export function play(sfx: Sfx, pitch?: number): void {
   const ac = audio();
   if (!ac) return;
   const t = ac.currentTime;
@@ -54,8 +55,15 @@ export function play(sfx: Sfx): void {
     case "dice":
       for (let i = 0; i < 6; i++) noise(ac, t + i * 0.08, 0.05, 0.25, 2400 - i * 200);
       break;
-    case "hop":
-      tone(ac, 520, t, 0.08, "triangle", 0.12, 780);
+    case "hop": {
+      const f = pitch ?? 520;
+      tone(ac, f, t, 0.08, "triangle", 0.12, f * 1.5);
+      break;
+    }
+    case "land":
+      // A soft wooden thunk: the dice or a token coming to rest.
+      tone(ac, 150, t, 0.12, "triangle", 0.2, 90);
+      noise(ac, t, 0.05, 0.18, 900);
       break;
     case "enter":
       tone(ac, 440, t, 0.12, "triangle", 0.15, 880);
@@ -82,13 +90,18 @@ export function play(sfx: Sfx): void {
   }
 }
 
+// Haptics mark the moment of impact (the dice landing, a capture), never the whole animation.
 const PATTERNS: Partial<Record<Sfx, number | number[]>> = {
-  dice: 20,
+  land: 22,
   capture: [40, 30, 60],
   home: [20, 40, 20],
   win: [60, 40, 60, 40, 120],
   six: 15,
 };
+
+export function hapticFor(sfx: Sfx): number | number[] | undefined {
+  return PATTERNS[sfx];
+}
 
 export function vibrate(sfx: Sfx): void {
   const p = PATTERNS[sfx];

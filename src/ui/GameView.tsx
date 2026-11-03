@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { tokenPosition, TRACK } from "../engine/board";
 import { EMOJIS } from "../engine/protocol";
 import { homeLocked, legalMoves, type Color } from "../engine/rules";
-import { ROLL_MS, buildFrames, eventToast } from "../game/anim";
+import { ROLL_MS, buildFrames, eventToast, homeCount, hopPitch } from "../game/anim";
 import type { Controller } from "../game/controller";
-import { t, type Lang, type StringKey } from "../game/i18n";
+import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
 import { play, vibrate, type Sfx } from "../game/sound";
 import type { Reaction } from "../online/useOnlineRoom";
 import { Board, ROTATION, type Burst } from "./Board";
@@ -43,8 +43,9 @@ export function GameView(props: GameViewProps) {
   fx.current = { sound: props.sound, haptics: props.haptics };
   const burstId = useRef(0);
 
-  const sfx = (s: Sfx) => {
-    if (fx.current.sound) play(s);
+  const [shake, setShake] = useState(0);
+  const sfx = (s: Sfx, pitch?: number) => {
+    if (fx.current.sound) play(s, pitch);
     if (fx.current.haptics) vibrate(s);
   };
 
@@ -70,7 +71,10 @@ export function GameView(props: GameViewProps) {
         sfx("dice");
       });
       at = ROLL_MS;
-      later(at, () => setRolling(false));
+      later(at, () => {
+        setRolling(false);
+        sfx("land");
+      });
       if (ctl.events.some((e) => e.type === "roll" && e.value === 6)) later(at, () => sfx("six"));
     }
     if (msg) later(at, () => setToast(msg));
@@ -80,7 +84,8 @@ export function GameView(props: GameViewProps) {
         for (const x of f.fx) {
           if (x.kind === "hop") {
             setHopping(`${x.player}-${x.token}`);
-            sfx("hop");
+            sfx("hop", hopPitch(x.step, x.steps));
+            if (x.last) sfx("land");
           } else if (x.kind === "enter") {
             setHopping(`${x.player}-${x.token}`);
             sfx("enter");
@@ -90,6 +95,7 @@ export function GameView(props: GameViewProps) {
             setBursts((b) => [...b, { id, row: r + 0.5, col: c + 0.5, color: colors[x.victim] }]);
             later(900, () => setBursts((b) => b.filter((y) => y.id !== id)));
             sfx("capture");
+            setShake((n) => n + 1);
           } else if (x.kind === "home") {
             const [r, c] = tokenPosition(colors[x.player], 56, x.token);
             const id = ++burstId.current;
@@ -199,6 +205,11 @@ export function GameView(props: GameViewProps) {
               <span className="pname">{names[i]}</span>
               {ctl.bots[i] && <span className="tag">{t(lang, "bot")}</span>}
               {ctl.offline?.[i] && !ctl.bots[i] && <span className="tag warn">{t(lang, "offline")}</span>}
+              <span className="pips" aria-label={t(lang, "tokensHome", { n: localDigits(lang, homeCount(display[i] ?? [])) })}>
+                {[0, 1, 2, 3].map((k) => (
+                  <i key={k} className={k < homeCount(display[i] ?? []) ? "on" : undefined} />
+                ))}
+              </span>
               {place >= 0 && <span className="tag gold">{t(lang, `place${place + 1}` as StringKey)}</span>}
               {active && secondsLeft !== null && (
                 <span className={`timer${secondsLeft <= 5 ? " low" : ""}`}>{t(lang, "secondsLeft", { s: secondsLeft })}</span>
@@ -213,7 +224,7 @@ export function GameView(props: GameViewProps) {
         })}
       </ol>
 
-      <div className="stage">
+      <div className={`stage${shake && !reduced ? ` shake-${shake % 2}` : ""}`}>
         <div className="board-tilt">
           <Board
             colors={colors}
