@@ -35,6 +35,7 @@ export default function App() {
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboarding, setOnboarding] = useState(() => needsOnboarding(settings.onboarded, screen.name === "online"));
   const [stats, setStats] = useState(loadStats);
   const [friends, setFriends] = useState<Friend[]>(loadFriends);
@@ -226,54 +227,59 @@ export default function App() {
 
   const code = normalizeRoomCode(joinCode);
   return (
-    <main className="screen home">
-      <div className="top-row">
-        <button type="button" className="btn small ghost" onClick={() => update({ lang: lang === "en" ? "ne" : "en" })}>
+    <main className="screen home lobby-screen">
+      <header className="lobby-top">
+        <div className="profile">
+          <span className="profile-avatar" aria-hidden="true">
+            {(settings.name.trim() || t(lang, "you")).slice(0, 1).toUpperCase()}
+          </span>
+          <span className="profile-text">
+            <strong>{settings.name.trim() || t(lang, "you")}</strong>
+            <small>
+              {stats.played > 0 ? t(lang, "statsLine", { won: stats.won, played: stats.played }) : t(lang, "tagline")}
+            </small>
+          </span>
+        </div>
+        <button type="button" className="chip-btn" onClick={() => update({ lang: lang === "en" ? "ne" : "en" })}>
           {t(lang, "language")}
         </button>
-        <div className="toggles">
-          <button type="button" className="icon-btn" aria-pressed={settings.sound} onClick={() => update({ sound: !settings.sound })} aria-label={t(lang, "sound")}>
-            <Icon name={settings.sound ? "soundOn" : "soundOff"} />
-          </button>
-          <button type="button" className="icon-btn" aria-pressed={settings.marks} onClick={() => update({ marks: !settings.marks })} aria-label={t(lang, "marks")} title={t(lang, "marks")}>
-            <Icon name="shapes" />
-          </button>
-          <button type="button" className="icon-btn" aria-pressed={settings.largeText} onClick={() => update({ largeText: !settings.largeText })} aria-label={t(lang, "largeText")} title={t(lang, "largeText")}>
-            <Icon name="textSize" />
-          </button>
-          <button type="button" className="icon-btn" aria-pressed={settings.haptics} onClick={() => update({ haptics: !settings.haptics })} aria-label={t(lang, "haptics")}>
-            <Icon name={settings.haptics ? "vibrate" : "vibrateOff"} />
-          </button>
+        <button type="button" className="icon-btn" aria-haspopup="dialog" onClick={() => setSettingsOpen(true)} aria-label={t(lang, "settings")}>
+          <Icon name="gear" />
+        </button>
+      </header>
+
+      <section className="hero-card">
+        <div className="hero-board" aria-hidden="true">
+          <img src="./icon.svg" alt="" width="132" height="132" />
         </div>
-      </div>
-      <div className="hero">
-        <img src="./icon.svg" alt="" width="96" height="96" className="hero-icon" />
         <h1>{t(lang, "appName")}</h1>
-        <p className="muted">{t(lang, "tagline")}</p>
-        {stats.played > 0 && (
-          <p className="muted stats-line">
-            {t(lang, "statsLine", { won: stats.won, played: stats.played })}
-            {liveStreak(stats, dayKey(new Date())) > 0 && ` · ${t(lang, "streakLine", { n: liveStreak(stats, dayKey(new Date())) })}`}
-          </p>
-        )}
-        <p className="badges">
-          <span className="badge"><Icon name="shield" size={16} /> {t(lang, "fairChip")}</span>
-          <span className="badge"><Icon name="noAds" size={16} /> {t(lang, "noAds")}</span>
+        <p className="hero-sub">
+          <span>
+            <Icon name="shield" size={16} /> {t(lang, "fairChip")}
+          </span>
+          <span>
+            <Icon name="noAds" size={16} /> {t(lang, "noAds")}
+          </span>
+          {liveStreak(stats, dayKey(new Date())) > 0 && <span className="streak"><Icon name="bolt" size={16} /> {t(lang, "streakLine", { n: liveStreak(stats, dayKey(new Date())) })}</span>}
         </p>
-      </div>
-      <nav className="modes">
-        <button type="button" className="mode-card mc-red" onClick={() => (tap(), setScreen({ name: "setup", mode: "bots" }))}>
-          <span className="mc-icon"><Icon name="bot" size={28} /></span>
+        <button type="button" className="btn primary big play-now" onClick={() => (tap(), startBots(settings))}>
+          {t(lang, "playNow")}
+        </button>
+      </section>
+
+      <nav className="tiles" aria-label={t(lang, "modes")}>
+        <button type="button" className="tile tl-red" onClick={() => (tap(), setScreen({ name: "setup", mode: "bots" }))}>
+          <span className="tile-icon"><Icon name="bot" size={30} /></span>
           <strong>{t(lang, "playBots")}</strong>
           <small>{t(lang, "playBotsSub")}</small>
         </button>
-        <button type="button" className="mode-card mc-green" onClick={() => (tap(), setScreen({ name: "setup", mode: "local" }))}>
-          <span className="mc-icon"><Icon name="phone" size={28} /></span>
+        <button type="button" className="tile tl-green" onClick={() => (tap(), setScreen({ name: "setup", mode: "local" }))}>
+          <span className="tile-icon"><Icon name="phone" size={30} /></span>
           <strong>{t(lang, "passPlay")}</strong>
           <small>{t(lang, "passPlaySub")}</small>
         </button>
-        <div className={`mode-card mc-blue online${WS_URL ? "" : " soon"}`}>
-          <span className="mc-icon"><Icon name="globe" size={28} /></span>
+        <div className={`tile tile-wide tl-blue online${WS_URL ? "" : " soon"}`}>
+          <span className="tile-icon"><Icon name="globe" size={30} /></span>
           <strong>{t(lang, "online")}</strong>
           {WS_URL ? (
             <>
@@ -322,7 +328,7 @@ export default function App() {
                   </span>
                 </button>
                 <button type="button" className="icon-btn forget" aria-label={t(lang, "forget", { name: f.name })} onClick={() => changeFriends((l) => forgetFriend(l, f.name))}>
-                  ×
+                  <Icon name="close" size={18} />
                 </button>
               </li>
             ))}
@@ -330,19 +336,6 @@ export default function App() {
           <p className="muted small">{t(lang, "friendsNote")}</p>
         </section>
       )}
-      <footer className="foot">
-        <button type="button" className="btn small ghost" onClick={() => setRules(true)}>
-          {t(lang, "rules")}
-        </button>
-        {canInstall && (
-          <button type="button" className="btn small" onClick={install}>
-            <Icon name="download" size={18} /> {t(lang, "install")}
-          </button>
-        )}
-        <a className="btn small ghost" href="https://sabin78910.github.io/privacy-policy/" target="_blank" rel="noreferrer">
-          {t(lang, "privacy")}
-        </a>
-      </footer>
       {onboarding && (
         <Onboarding
           lang={lang}
@@ -352,6 +345,47 @@ export default function App() {
           onDone={() => finishOnboarding(false)}
           onPlay={() => finishOnboarding(true)}
         />
+      )}
+      {settingsOpen && (
+        <div className="results sheet-wrap" role="dialog" aria-modal="true" aria-label={t(lang, "settings")} onClick={() => setSettingsOpen(false)}>
+          <div className="sheet" onClick={(e) => e.stopPropagation()}>
+            <h2>{t(lang, "settings")}</h2>
+            <ul className="settings-list">
+              {(
+                [
+                  ["sound", settings.sound ? "soundOn" : "soundOff"],
+                  ["haptics", settings.haptics ? "vibrate" : "vibrateOff"],
+                  ["marks", "shapes"],
+                  ["largeText", "textSize"],
+                ] as const
+              ).map(([key, icon]) => (
+                <li key={key}>
+                  <label className="setting">
+                    <Icon name={icon} />
+                    <span>{t(lang, key)}</span>
+                    <input type="checkbox" role="switch" checked={settings[key]} onChange={() => update({ [key]: !settings[key] })} />
+                  </label>
+                </li>
+              ))}
+            </ul>
+            <div className="row-btns">
+              <button type="button" className="btn" onClick={() => (setSettingsOpen(false), setRules(true))}>
+                <Icon name="book" size={18} /> {t(lang, "rules")}
+              </button>
+              {canInstall && (
+                <button type="button" className="btn" onClick={install}>
+                  <Icon name="download" size={18} /> {t(lang, "install")}
+                </button>
+              )}
+              <a className="btn ghost" href="https://sabin78910.github.io/privacy-policy/" target="_blank" rel="noreferrer">
+                {t(lang, "privacy")}
+              </a>
+            </div>
+            <button type="button" className="btn primary big" onClick={() => setSettingsOpen(false)}>
+              {t(lang, "close")}
+            </button>
+          </div>
+        </div>
       )}
       {rules && (
         <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "rules")} onClick={() => setRules(false)}>
