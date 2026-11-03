@@ -9,6 +9,7 @@ import {
   legalMoves,
   target,
   trackIndex,
+  sameSide,
   type GameState,
 } from "./rules";
 
@@ -19,7 +20,7 @@ export const DIFFICULTIES: readonly Difficulty[] = ["easy", "normal", "hard"];
 export function threatsTo(state: GameState, player: number, cell: number): number {
   let n = 0;
   state.players.forEach((p, other) => {
-    if (other === player) return;
+    if (sameSide(state, player, other)) return;
     state.tokens[other].forEach((op) => {
       const at = trackIndex(p.color, op);
       // Tokens in base can only enter onto their own start cell, which is safe, so they are no threat.
@@ -50,7 +51,7 @@ export function scoreMoves(state: GameState, hard = false): MoveScore[] {
     // Captures
     if (cell !== null && !isSafeIndex(cell)) {
       state.players.forEach((p, other) => {
-        if (other === me) return;
+        if (sameSide(state, me, other)) return;
         state.tokens[other].forEach((op) => {
           if (trackIndex(p.color, op) === cell) score += 100 + (hard ? op * 1.2 : 0);
         });

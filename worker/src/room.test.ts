@@ -91,6 +91,14 @@ describe("RoomCore lobby", () => {
     expect(room.data.game!.tokens.map((t) => t[0])).toEqual([0, 0]);
     expect(room.view(0, 0).mode).toBe("quick");
   });
+  it("starts a team game only with four seats", async () => {
+    const two = await lobby(2);
+    two.room.start(0, false, 0, false, true);
+    expect(two.room.data.game!.teams).toBe(false);
+    const four = await lobby(4);
+    four.room.start(0, false, 0, false, true);
+    expect(four.room.data.game!.teams).toBe(true);
+  });
   it("starts with the Master rule when the host asks for it", async () => {
     const { room } = await lobby(2);
     room.start(0, false, 0, true);

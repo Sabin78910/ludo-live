@@ -17,6 +17,7 @@ export interface OnlineProps {
   reduced: boolean;
   quick: boolean;
   master: boolean;
+  teams: boolean;
   onExit(): void;
   onVerify(p: Proof): void;
 }
@@ -25,6 +26,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
   const { room, status, error, reactions, send, controller } = useOnlineRoom(p.url, p.code, p.name, p.clientSeed, p.create, p.reduced);
   const [quick, setQuick] = useState(p.quick);
   const [master, setMaster] = useState(p.master);
+  const [teams, setTeams] = useState(p.teams);
   const [copied, setCopied] = useState(false);
   const lang = p.lang;
   const link = inviteLink(p.code, window.location);
@@ -156,7 +158,15 @@ export function OnlineRoomScreen(p: OnlineProps) {
                   🎯 {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
                 </span>
               </label>
-              <button type="button" className="btn primary big" disabled={room.seats.length < 2} onClick={() => send({ t: "start", quick, master })}>
+              {room.seats.length === 4 && (
+                <label className="switch">
+                  <input type="checkbox" checked={teams} onChange={(e) => setTeams(e.target.checked)} />
+                  <span>
+                    🤝 {t(lang, "teamsMode")} <small>{t(lang, "teamsModeSub")}</small>
+                  </span>
+                </label>
+              )}
+              <button type="button" className="btn primary big" disabled={room.seats.length < 2} onClick={() => send({ t: "start", quick, master, teams: teams && room.seats.length === 4 })}>
                 {room.seats.length < 2 ? t(lang, "needTwo") : t(lang, "start")}
               </button>
             </>

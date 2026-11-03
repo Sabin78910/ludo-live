@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { tokenPosition, TRACK } from "../engine/board";
 import { EMOJIS } from "../engine/protocol";
-import { homeLocked, legalMoves, type Color } from "../engine/rules";
+import { homeLocked, legalMoves, winners, type Color } from "../engine/rules";
 import { ROLL_MS, buildFrames, eventToast, homeCount, hopPitch } from "../game/anim";
 import type { Controller } from "../game/controller";
 import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
@@ -142,8 +142,7 @@ export function GameView(props: GameViewProps) {
   useEffect(() => {
     if (!over || reported.current) return;
     reported.current = true;
-    const first = state.finished[0];
-    props.onGameOver?.(!ctl.local.every(Boolean) && first !== undefined && !!ctl.local[first]);
+    props.onGameOver?.(!ctl.local.every(Boolean) && winners(state).some((i) => ctl.local[i]));
   }, [over]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (over) {
@@ -166,8 +165,11 @@ export function GameView(props: GameViewProps) {
   const canRoll = ctl.canAct && state.phase === "roll" && !rolling;
 
   let status: string;
-  const winnerIsMe = over && ctl.local[state.finished[0]] && !allLocal;
-  if (over) status = winnerIsMe ? t(lang, "youWin") : t(lang, "wins", { name: names[state.finished[0]] });
+  const won = winners(state);
+  const winnerIsMe = over && won.some((i) => ctl.local[i]) && !allLocal;
+  if (over && winnerIsMe) status = t(lang, "youWin");
+  else if (over && won.length === 2) status = t(lang, "teamWins", { a: names[won[0]], b: names[won[1]] });
+  else if (over) status = t(lang, "wins", { name: names[state.finished[0]] });
   else if (ctl.local[cur] && state.phase === "move" && ctl.canAct) status = t(lang, "pickToken");
   else if (ctl.local[cur] && !allLocal) status = t(lang, "yourTurn");
   else if (ctl.bots[cur]) status = t(lang, "botThinking", { name: curName });
@@ -187,6 +189,7 @@ export function GameView(props: GameViewProps) {
           <code>{ctl.fair.serverSeedHash.slice(0, 10) || "…"}</code>
         </div>
         {state.mode === "quick" && <span className="mode-chip">⚡ {t(lang, "quickMode")}</span>}
+        {state.teams && <span className="mode-chip">🤝 {t(lang, "teamsMode")}</span>}
         {state.master && (
           <span className="mode-chip">
             🎯 {homeLocked(state, state.current) ? t(lang, "masterLocked") : t(lang, "masterRule")}
