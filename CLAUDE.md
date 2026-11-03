@@ -33,5 +33,11 @@ Design: deep navy #0B1026 with glass, classic Ludo red, green, yellow and blue, 
 - Keep the Content-Security-Policy strict; add a host to connect-src only when a feature needs it.
 - `main` is protected: branch, open a PR, merge when CI is green. One issue per PR, under ~300 lines.
 
+## Approvals
+- Ask before any production or store change: Worker deploys (`wrangler deploy`, `worker-deploy.yml`), GitHub Pages deploys, Play Console or store listing (`store/`), release tags, signing config.
+- Keep changes focused on the requested task, and report which checks ran and what was not verified.
+- `.claude/settings.json` lets routine build and test commands run without prompts. Pushing to `main`,
+  force pushes, secret changes and fastlane are blocked.
+
 ## Done when
 Lint clean, tests pass, CI green, PR opened with a three line summary. User facing work follows `docs/FEEL.md`.
