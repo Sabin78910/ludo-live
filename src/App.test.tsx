@@ -32,6 +32,22 @@ describe("App", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
+  it("starts a game straight from Play now", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Play now" }));
+    expect(await screen.findAllByRole("button", { name: "Tap the dice to roll" })).toHaveLength(1);
+  });
+
+  it("keeps sound and accessibility options in a settings sheet", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: "Settings" }));
+    const sound = screen.getByRole("switch", { name: "Sound" });
+    expect(sound).toBeChecked();
+    await userEvent.click(sound);
+    expect(sound).not.toBeChecked();
+    expect(JSON.parse(localStorage.getItem("ludo-live.settings")!).sound).toBe(false);
+  });
+
   it("opens the fairness explainer from the in-game chip", async () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: /Play vs bots/ }));

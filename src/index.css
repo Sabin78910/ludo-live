@@ -1594,3 +1594,284 @@ button.fair-chip {
     display: none;
   }
 }
+
+/* Lobby: a game home, not a web page. Profile bar, one big Play, then mode tiles. */
+.lobby-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.profile {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--gold-line);
+}
+.profile-avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe9a8, var(--gold) 60%, #b3861f);
+  color: #2a1d00;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 1.1rem;
+}
+.profile-text {
+  min-width: 0;
+  display: grid;
+}
+.profile-text strong {
+  font-family: var(--display);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-text small {
+  color: var(--muted);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chip-btn {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--glass-line);
+  background: var(--glass);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.hero-card {
+  position: relative;
+  margin-top: 18px;
+  padding: 26px 18px 18px;
+  border-radius: 28px;
+  text-align: center;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 50% 0%, rgba(245, 196, 81, 0.22), transparent 60%),
+    linear-gradient(180deg, #1a2350, #111838);
+  border: 1px solid var(--gold-line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+.hero-card::before {
+  /* faint board-grid texture */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 22px 22px;
+  mask-image: radial-gradient(circle at 50% 30%, #000, transparent 75%);
+  pointer-events: none;
+}
+.hero-board img {
+  position: relative;
+  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.5));
+  animation: float 4s ease-in-out infinite;
+}
+.hero-card h1 {
+  position: relative;
+  margin: 8px 0 6px;
+  font-size: clamp(2.4rem, 10vw, 3.2rem);
+  font-weight: 800;
+  background: linear-gradient(180deg, #fff 30%, var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.hero-sub {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 14px;
+  margin: 0 0 18px;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.hero-sub span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.hero-sub .icon {
+  color: var(--gold);
+}
+.hero-sub .streak {
+  color: var(--gold);
+  font-weight: 700;
+}
+.play-now {
+  position: relative;
+  font-family: var(--display);
+  font-size: 1.25rem;
+  letter-spacing: 0.01em;
+}
+
+/* Chunky, pressable buttons: a solid lip under the face that compresses on press. */
+.btn.primary {
+  box-shadow: 0 4px 0 #b3861f, 0 10px 24px rgba(245, 196, 81, 0.3);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.btn.primary:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 #b3861f, 0 4px 12px rgba(245, 196, 81, 0.25);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.tile {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+  min-height: 150px;
+  padding: 16px;
+  text-align: left;
+  border-radius: 24px;
+  border: 0;
+  color: #fff;
+  cursor: pointer;
+  overflow: hidden;
+  /* Darkened so white text keeps AA (4.5:1) across the whole gradient. */
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--hi) 35%, transparent), transparent 60%),
+    linear-gradient(160deg, color-mix(in srgb, var(--c) 80%, #000), var(--lo));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 5px 0 color-mix(in srgb, var(--lo) 70%, #000), 0 16px 30px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+.tile::after {
+  /* big faded die face in the corner */
+  content: "";
+  position: absolute;
+  right: -18px;
+  bottom: -18px;
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.35) 0 8px, transparent 9px),
+    radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.35) 0 8px, transparent 9px),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.35) 0 8px, transparent 9px),
+    rgba(255, 255, 255, 0.12);
+  transform: rotate(-14deg);
+}
+button.tile:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 1px 0 var(--lo), 0 6px 14px rgba(0, 0, 0, 0.3);
+}
+.tile strong {
+  font-family: var(--display);
+  font-size: 1.2rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.tile small {
+  color: #fff;
+  font-size: 0.85rem;
+}
+.tile-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.22);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.tile-wide {
+  grid-column: 1 / -1;
+  min-height: 0;
+  cursor: default;
+}
+.tl-red {
+  --c: var(--red);
+  --hi: var(--red-hi);
+  --lo: var(--red-lo);
+}
+.tl-green {
+  --c: #16a34a;
+  --hi: var(--green-hi);
+  --lo: var(--green-lo);
+}
+.tl-blue {
+  --c: var(--blue);
+  --hi: var(--blue-hi);
+  --lo: var(--blue-lo);
+}
+.tile .soon-tag {
+  color: #fff !important;
+  opacity: 0.9;
+}
+.tile .online-row {
+  position: relative;
+  z-index: 1;
+}
+.tile .join input {
+  background: rgba(0, 0, 0, 0.28);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Settings sheet */
+.sheet-wrap {
+  place-items: end center;
+}
+.sheet {
+  width: min(520px, 100%);
+  display: grid;
+  gap: 14px;
+  padding: 20px 18px max(20px, env(safe-area-inset-bottom));
+  border-radius: 28px 28px 0 0;
+  background: linear-gradient(180deg, #1b2452, #10163a);
+  border: 1px solid var(--gold-line);
+  border-bottom: 0;
+  animation: sheet-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+@keyframes sheet-in {
+  from {
+    transform: translateY(40px);
+    opacity: 0;
+  }
+}
+.settings-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.setting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 52px;
+  padding: 0 4px;
+  border-bottom: 1px solid var(--glass-line);
+  cursor: pointer;
+}
+.setting span {
+  flex: 1;
+  font-weight: 600;
+}
+.setting input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--gold);
+}
