@@ -4,7 +4,7 @@ import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
-import { loadSettings, saveSettings, type Settings } from "./game/settings";
+import { BOARD_THEMES, loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
@@ -12,6 +12,7 @@ import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
 import { needsOnboarding } from "./game/onboarding";
 import { GameView } from "./ui/GameView";
 import { Onboarding } from "./ui/Onboarding";
+import { Icon } from "./ui/Icon";
 import { OnlineRoomScreen } from "./ui/Online";
 import { Verify, type Proof } from "./ui/Verify";
 
@@ -57,8 +58,11 @@ export default function App() {
   }, [lang]);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("marks", settings.marks);
-  }, [settings.marks]);
+    const root = document.documentElement;
+    root.classList.toggle("marks", settings.marks);
+    root.classList.toggle("large-text", settings.largeText);
+    root.dataset.board = settings.board;
+  }, [settings.marks, settings.largeText, settings.board]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -132,7 +136,7 @@ export default function App() {
     return (
       <main className="screen setup">
         <button type="button" className="btn ghost back" onClick={() => setScreen({ name: "home" })}>
-          ← {t(lang, "back")}
+          <Icon name="back" size={18} /> {t(lang, "back")}
         </button>
         <h1>{t(lang, bots ? "playBots" : "passPlay")}</h1>
         <section className="glass form">
@@ -161,23 +165,32 @@ export default function App() {
           <label className="switch">
             <input type="checkbox" checked={settings.quick} onChange={(e) => update({ quick: e.target.checked })} />
             <span>
-              ⚡ {t(lang, "quickMode")} <small>{t(lang, "quickModeSub")}</small>
+              <Icon name="bolt" /> {t(lang, "quickMode")} <small>{t(lang, "quickModeSub")}</small>
             </span>
           </label>
           <label className="switch">
             <input type="checkbox" checked={settings.master} onChange={(e) => update({ master: e.target.checked })} />
             <span>
-              🎯 {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
+              <Icon name="target" /> {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
             </span>
           </label>
           {settings.players === 4 && (
             <label className="switch">
               <input type="checkbox" checked={settings.teams} onChange={(e) => update({ teams: e.target.checked })} />
               <span>
-                🤝 {t(lang, "teamsMode")} <small>{t(lang, "teamsModeSub")}</small>
+                <Icon name="team" /> {t(lang, "teamsMode")} <small>{t(lang, "teamsModeSub")}</small>
               </span>
             </label>
           )}
+          <fieldset className="seg boards">
+            <legend>{t(lang, "boardTheme")}</legend>
+            {BOARD_THEMES.map((b) => (
+              <button key={b} type="button" aria-pressed={settings.board === b} onClick={() => update({ board: b })}>
+                <span className={`swatch sw-${b}`} aria-hidden="true" />
+                {t(lang, `board_${b}`)}
+              </button>
+            ))}
+          </fieldset>
           <button type="button" className="btn primary big" onClick={start}>
             {t(lang, "start")}
           </button>
@@ -210,13 +223,16 @@ export default function App() {
         </button>
         <div className="toggles">
           <button type="button" className="icon-btn" aria-pressed={settings.sound} onClick={() => update({ sound: !settings.sound })} aria-label={t(lang, "sound")}>
-            {settings.sound ? "🔊" : "🔇"}
+            <Icon name={settings.sound ? "soundOn" : "soundOff"} />
           </button>
           <button type="button" className="icon-btn" aria-pressed={settings.marks} onClick={() => update({ marks: !settings.marks })} aria-label={t(lang, "marks")} title={t(lang, "marks")}>
-            ▲
+            <Icon name="shapes" />
+          </button>
+          <button type="button" className="icon-btn" aria-pressed={settings.largeText} onClick={() => update({ largeText: !settings.largeText })} aria-label={t(lang, "largeText")} title={t(lang, "largeText")}>
+            <Icon name="textSize" />
           </button>
           <button type="button" className="icon-btn" aria-pressed={settings.haptics} onClick={() => update({ haptics: !settings.haptics })} aria-label={t(lang, "haptics")}>
-            {settings.haptics ? "📳" : "📴"}
+            <Icon name={settings.haptics ? "vibrate" : "vibrateOff"} />
           </button>
         </div>
       </div>
@@ -231,23 +247,23 @@ export default function App() {
           </p>
         )}
         <p className="badges">
-          <span className="badge">🔒 {t(lang, "fairChip")}</span>
-          <span className="badge">🚫 {t(lang, "noAds")}</span>
+          <span className="badge"><Icon name="shield" size={16} /> {t(lang, "fairChip")}</span>
+          <span className="badge"><Icon name="noAds" size={16} /> {t(lang, "noAds")}</span>
         </p>
       </div>
       <nav className="modes">
         <button type="button" className="mode-card mc-red" onClick={() => (tap(), setScreen({ name: "setup", mode: "bots" }))}>
-          <span className="mc-icon">🤖</span>
+          <span className="mc-icon"><Icon name="bot" size={28} /></span>
           <strong>{t(lang, "playBots")}</strong>
           <small>{t(lang, "playBotsSub")}</small>
         </button>
         <button type="button" className="mode-card mc-green" onClick={() => (tap(), setScreen({ name: "setup", mode: "local" }))}>
-          <span className="mc-icon">📱</span>
+          <span className="mc-icon"><Icon name="phone" size={28} /></span>
           <strong>{t(lang, "passPlay")}</strong>
           <small>{t(lang, "passPlaySub")}</small>
         </button>
         <div className={`mode-card mc-blue online${WS_URL ? "" : " soon"}`}>
-          <span className="mc-icon">🌐</span>
+          <span className="mc-icon"><Icon name="globe" size={28} /></span>
           <strong>{t(lang, "online")}</strong>
           {WS_URL ? (
             <>
@@ -288,7 +304,7 @@ export default function App() {
         </button>
         {canInstall && (
           <button type="button" className="btn small" onClick={install}>
-            ⬇ {t(lang, "install")}
+            <Icon name="download" size={18} /> {t(lang, "install")}
           </button>
         )}
         <a className="btn small ghost" href="https://sabin78910.github.io/privacy-policy/" target="_blank" rel="noreferrer">

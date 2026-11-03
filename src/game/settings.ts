@@ -3,6 +3,9 @@ import type { Difficulty } from "../engine/bot";
 import { randomHex } from "../engine/fair";
 import type { Lang } from "./i18n";
 
+export const BOARD_THEMES = ["classic", "wood", "marble", "neon"] as const;
+export type BoardTheme = (typeof BOARD_THEMES)[number];
+
 export interface Settings {
   lang: Lang;
   sound: boolean;
@@ -19,6 +22,10 @@ export interface Settings {
   teams: boolean;
   /** First-run onboarding finished or skipped. */
   onboarded: boolean;
+  /** Board finish. Cosmetic only, never affects play. */
+  board: BoardTheme;
+  /** Larger type across the app for low vision and older players. */
+  largeText: boolean;
   /** This device's contribution to the fair-dice seeds. */
   clientSeed: string;
 }
@@ -38,6 +45,8 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     master: false,
     teams: false,
     onboarded: false,
+    board: "classic",
+    largeText: false,
     clientSeed: randomHex(8),
   };
 }
@@ -62,6 +71,8 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       master: typeof o.master === "boolean" ? o.master : fallback.master,
       teams: typeof o.teams === "boolean" ? o.teams : fallback.teams,
       onboarded: typeof o.onboarded === "boolean" ? o.onboarded : fallback.onboarded,
+      board: BOARD_THEMES.includes(o.board as BoardTheme) ? (o.board as BoardTheme) : fallback.board,
+      largeText: typeof o.largeText === "boolean" ? o.largeText : fallback.largeText,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };
   } catch {
