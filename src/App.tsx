@@ -18,7 +18,7 @@ const WS_URL = import.meta.env.VITE_WS_URL;
 type Screen =
   | { name: "home" }
   | { name: "setup"; mode: "bots" | "local" }
-  | { name: "local"; seats: LocalSeat[]; quick: boolean; key: number }
+  | { name: "local"; seats: LocalSeat[]; quick: boolean; master: boolean; key: number }
   | { name: "online"; code: string; create: boolean }
   | { name: "verify"; proof: Proof; back: Screen };
 
@@ -81,6 +81,7 @@ export default function App() {
         key={screen.key}
         seats={screen.seats}
         quick={screen.quick}
+        master={screen.master}
         settings={settings}
         reduced={reduced}
         onGameOver={onGameOver}
@@ -104,6 +105,7 @@ export default function App() {
         haptics={settings.haptics}
         reduced={reduced}
         quick={settings.quick}
+        master={settings.master}
         onExit={() => setScreen({ name: "home" })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
       />
@@ -120,7 +122,7 @@ export default function App() {
         name: bots ? (i === 0 ? myName : `${t(lang, "bot")} ${i}`) : i === 0 && settings.name ? settings.name : `${t(lang, "player")} ${i + 1}`,
         bot: bots && i > 0 ? settings.difficulty : null,
       }));
-      setScreen({ name: "local", seats, quick: settings.quick, key: Date.now() });
+      setScreen({ name: "local", seats, quick: settings.quick, master: settings.master, key: Date.now() });
     };
     return (
       <main className="screen setup">
@@ -155,6 +157,12 @@ export default function App() {
             <input type="checkbox" checked={settings.quick} onChange={(e) => update({ quick: e.target.checked })} />
             <span>
               ⚡ {t(lang, "quickMode")} <small>{t(lang, "quickModeSub")}</small>
+            </span>
+          </label>
+          <label className="switch">
+            <input type="checkbox" checked={settings.master} onChange={(e) => update({ master: e.target.checked })} />
+            <span>
+              🎯 {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
             </span>
           </label>
           <button type="button" className="btn primary big" onClick={start}>
@@ -278,6 +286,7 @@ export default function App() {
 function LocalGame({
   seats,
   quick,
+  master,
   settings,
   reduced,
   onGameOver,
@@ -287,6 +296,7 @@ function LocalGame({
 }: {
   seats: LocalSeat[];
   quick: boolean;
+  master: boolean;
   settings: Settings;
   reduced: boolean;
   onGameOver(won: boolean): void;
@@ -294,7 +304,7 @@ function LocalGame({
   onAgain(): void;
   onVerify(p: Proof): void;
 }) {
-  const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced);
+  const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced, master);
   const state = ctl.state!;
   return (
     <GameView

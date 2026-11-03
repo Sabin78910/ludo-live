@@ -8,6 +8,7 @@ import {
   autoMove,
   createGame,
   distinctMoves,
+  homeLocked,
   isSafeIndex,
   legalMoves,
   passTurn,
@@ -293,5 +294,46 @@ describe("move helpers", () => {
   it("animationSteps counts move cells and captures", () => {
     expect(animationSteps([{ type: "move", player: 0, token: 0, from: 1, to: 4, path: [2, 3, 4] }])).toBe(3);
     expect(animationSteps([{ type: "capture", player: 0, victim: 1, token: 0, cell: 3 }])).toBe(4);
+  });
+});
+
+describe("Master rule", () => {
+  const master = (tokens: number[][], extra: Partial<GameState> = {}) =>
+    ({ ...createGame(two, { master: true }), tokens: tokens.map((t) => [...t]), ...extra }) as GameState;
+
+  it("is off by default and on when asked, in either mode", () => {
+    expect(createGame(two).master).toBe(false);
+    expect(createGame(two, { master: true, mode: "quick" })).toMatchObject({ master: true, mode: "quick", captured: [false, false] });
+  });
+  it("keeps a token out of the home column until the player has captured", () => {
+    const g = applyRoll(master([[48, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]]), 4).state;
+    expect(homeLocked(g, 0)).toBe(true);
+    expect(legalMoves(g)).toEqual([]);
+    expect(g.current).toBe(1); // no legal move, turn passes
+  });
+  it("still lets a token walk up to the last track cell", () => {
+    const g = applyRoll(master([[48, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]]), 2).state;
+    expect(applyMove(g, 0).state.tokens[0][0]).toBe(50);
+  });
+  it("rejects a forced move past the gate", () => {
+    const g = master([[48, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]], { phase: "move", dice: 4 });
+    expect(() => applyMove(g, 0)).toThrow(RuleError);
+  });
+  it("unlocks home for the capturing player only", () => {
+    // Red at 3 lands on 5; yellow's token at progress 31 sits on track cell 5 (26 + 31 = 57 mod 52).
+    const g = applyRoll(master([[3, BASE, BASE, BASE], [31, BASE, BASE, BASE]]), 2).state;
+    const { state, events } = applyMove(g, 0);
+    expect(events.some((e) => e.type === "capture")).toBe(true);
+    expect(state.captured).toEqual([true, false]);
+    expect(homeLocked(state, 0)).toBe(false);
+    expect(homeLocked(state, 1)).toBe(true);
+  });
+  it("lets an unlocked player enter home", () => {
+    const g = applyRoll(master([[48, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]], { captured: [true, false] }), 4).state;
+    expect(applyMove(g, 0).state.tokens[0][0]).toBe(52);
+  });
+  it("treats saved games without the field as classic", () => {
+    const g = applyRoll(setup([[48, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]], two, { master: undefined, captured: undefined }), 4).state;
+    expect(legalMoves(g)).toEqual([0]);
   });
 });

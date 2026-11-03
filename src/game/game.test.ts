@@ -33,6 +33,8 @@ describe("settings", () => {
     expect(s.clientSeed).toBe(fb.clientSeed);
     expect(parseSettings(JSON.stringify({ marks: true }), fb).marks).toBe(true);
     expect(parseSettings(JSON.stringify({ marks: "yes" }), fb).marks).toBe(fb.marks);
+    expect(parseSettings(JSON.stringify({ master: "yes" }), fb).master).toBe(false);
+    expect(parseSettings(JSON.stringify({ master: true }), fb).master).toBe(true);
   });
   it("keeps valid saved values", () => {
     const s = parseSettings(JSON.stringify({ players: 2, difficulty: "hard", lang: "ne", quick: true, sound: false }), fb);
