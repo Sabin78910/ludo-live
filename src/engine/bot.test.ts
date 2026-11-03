@@ -1,4 +1,4 @@
-import { chooseMove, scoreMoves, seededRandom, threatsTo, DIFFICULTIES } from "./bot";
+import { chooseMove, explainMove, scoreMoves, seededRandom, threatsTo, DIFFICULTIES } from "./bot";
 import { BASE, FINISH, applyMove, applyRoll, autoMove, createGame, legalMoves, seatColors, type GameState } from "./rules";
 
 const two = [
@@ -133,5 +133,25 @@ describe("full simulated games", () => {
       if (g.finished[0] === 0) hardWins++;
     }
     expect(hardWins).toBeGreaterThan(17);
+  });
+});
+
+describe("explainMove", () => {
+  it("names the reason a move was chosen", () => {
+    const capture = rolled([[24, 11, BASE, BASE], [1, BASE, BASE, BASE]], 3);
+    expect(explainMove(capture, 0)).toBe("capture");
+    expect(explainMove(capture, 1)).toBe("advance");
+    expect(explainMove(rolled([[BASE, 10, BASE, BASE], [BASE, BASE, BASE, BASE]], 6), 0)).toBe("enter");
+    expect(explainMove(rolled([[53, 10, BASE, BASE], [BASE, BASE, BASE, BASE]], 3), 0)).toBe("finish");
+    expect(explainMove(rolled([[48, 10, BASE, BASE], [BASE, BASE, BASE, BASE]], 4), 0)).toBe("homeColumn");
+  });
+  it("calls it an escape when a threatened token moves out of reach", () => {
+    // Red at progress 30 (track 30); yellow at progress 1 (track 27) is 3 behind. Moving 5 lands on track 35.
+    const g = rolled([[30, BASE, BASE, BASE], [1, BASE, BASE, BASE]], 5);
+    expect(explainMove(g, 0)).toBe("escape");
+  });
+  it("calls landing on a star a safe move", () => {
+    // Progress 5 + 3 = 8, a star.
+    expect(explainMove(rolled([[5, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]], 3), 0)).toBe("safe");
   });
 });

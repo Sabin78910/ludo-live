@@ -71,6 +71,33 @@ export function scoreMoves(state: GameState, hard = false): MoveScore[] {
   });
 }
 
+/** Why a bot picked a move, in priority order, so players can see the bot's reasoning. */
+export type MoveReason = "capture" | "finish" | "enter" | "homeColumn" | "escape" | "safe" | "advance";
+
+export function explainMove(state: GameState, token: number): MoveReason {
+  const me = state.current;
+  const color = state.players[me].color;
+  const from = state.tokens[me][token];
+  const to = target(from, state.dice ?? 0);
+  if (to === null) return "advance";
+  const cell = trackIndex(color, to);
+  if (cell !== null && !isSafeIndex(cell)) {
+    const hits = state.players.some(
+      (p, other) => !sameSide(state, me, other) && state.tokens[other].some((op) => trackIndex(p.color, op) === cell),
+    );
+    if (hits) return "capture";
+  }
+  if (to === FINISH) return "finish";
+  if (from === BASE) return "enter";
+  if (from <= LAST_TRACK && to > LAST_TRACK) return "homeColumn";
+  if (from >= 0 && from <= LAST_TRACK) {
+    const fromCell = trackIndex(color, from)!;
+    if (!isSafeIndex(fromCell) && threatsTo(state, me, fromCell) > 0 && (cell === null || isSafeIndex(cell) || threatsTo(state, me, cell) === 0)) return "escape";
+  }
+  if (cell !== null && isSafeIndex(cell)) return "safe";
+  return "advance";
+}
+
 /** Pick a token to move. `rand` returns [0,1) so tests can seed it. */
 export function chooseMove(state: GameState, difficulty: Difficulty, rand: () => number = Math.random): number {
   const moves = legalMoves(state);

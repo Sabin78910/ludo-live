@@ -1,3 +1,4 @@
+import type { MoveReason } from "../engine/bot";
 import type { GameEvent, GameState } from "../engine/rules";
 
 /** What the game screen needs, whether the game runs locally or on the server. */
@@ -18,4 +19,6 @@ export interface Controller {
   deadline: number | null;
   fair: { serverSeedHash: string; clientSeeds: string[]; serverSeed: string | null };
   offline?: boolean[];
+  /** The last bot move and why it was chosen (local bot games). */
+  botNote?: { player: number; reason: MoveReason } | null;
 }
