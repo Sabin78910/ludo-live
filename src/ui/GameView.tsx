@@ -10,6 +10,7 @@ import type { Reaction } from "../online/useOnlineRoom";
 import { Board, ROTATION, type Burst } from "./Board";
 import { Dice } from "./Dice";
 import { Results } from "./Results";
+import { Icon } from "./Icon";
 
 export interface GameViewProps {
   ctl: Controller;
@@ -182,17 +183,17 @@ export function GameView(props: GameViewProps) {
     <div className="game">
       <header className="game-top">
         <button type="button" className="icon-btn" onClick={props.onExit} aria-label={t(lang, "leave")}>
-          ←
+          <Icon name="back" size={20} />
         </button>
         <div className="fair-chip" title={t(lang, "fairInfo")}>
-          <span aria-hidden="true">🔒</span> {t(lang, "fairChip")}
+          <Icon name="shield" size={16} /> {t(lang, "fairChip")}
           <code>{ctl.fair.serverSeedHash.slice(0, 10) || "…"}</code>
         </div>
-        {state.mode === "quick" && <span className="mode-chip">⚡ {t(lang, "quickMode")}</span>}
-        {state.teams && <span className="mode-chip">🤝 {t(lang, "teamsMode")}</span>}
+        {state.mode === "quick" && <span className="mode-chip"><Icon name="bolt" size={16} /> {t(lang, "quickMode")}</span>}
+        {state.teams && <span className="mode-chip"><Icon name="team" size={16} /> {t(lang, "teamsMode")}</span>}
         {state.master && (
           <span className="mode-chip">
-            🎯 {homeLocked(state, state.current) ? t(lang, "masterLocked") : t(lang, "masterRule")}
+            <Icon name="target" size={16} /> {homeLocked(state, state.current) ? t(lang, "masterLocked") : t(lang, "masterRule")}
           </span>
         )}
       </header>
