@@ -9,7 +9,9 @@ import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { needsOnboarding } from "./game/onboarding";
 import { GameView } from "./ui/GameView";
+import { Onboarding } from "./ui/Onboarding";
 import { OnlineRoomScreen } from "./ui/Online";
 import { Verify, type Proof } from "./ui/Verify";
 
@@ -31,6 +33,7 @@ export default function App() {
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
+  const [onboarding, setOnboarding] = useState(() => needsOnboarding(settings.onboarded, screen.name === "online"));
   const [stats, setStats] = useState(loadStats);
   const onGameOver = (won: boolean) =>
     setStats((s) => {
@@ -183,6 +186,21 @@ export default function App() {
     );
   }
 
+  const startBots = (s: Settings) => {
+    const colors = seatColors(s.players);
+    const seats: LocalSeat[] = colors.map((color, i) => ({
+      color,
+      name: i === 0 ? s.name.trim() || t(s.lang, "you") : `${t(s.lang, "bot")} ${i}`,
+      bot: i > 0 ? s.difficulty : null,
+    }));
+    setScreen({ name: "local", seats, quick: s.quick, master: s.master, teams: s.teams && s.players === 4, key: Date.now() });
+  };
+  const finishOnboarding = (play: boolean) => {
+    setOnboarding(false);
+    update({ onboarded: true });
+    if (play) startBots({ ...settings, onboarded: true });
+  };
+
   const code = normalizeRoomCode(joinCode);
   return (
     <main className="screen home">
@@ -277,6 +295,16 @@ export default function App() {
           {t(lang, "privacy")}
         </a>
       </footer>
+      {onboarding && (
+        <Onboarding
+          lang={lang}
+          name={settings.name}
+          onName={(name) => update({ name })}
+          onLang={() => update({ lang: lang === "en" ? "ne" : "en" })}
+          onDone={() => finishOnboarding(false)}
+          onPlay={() => finishOnboarding(true)}
+        />
+      )}
       {rules && (
         <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "rules")} onClick={() => setRules(false)}>
           <div className="results-card" onClick={(e) => e.stopPropagation()}>

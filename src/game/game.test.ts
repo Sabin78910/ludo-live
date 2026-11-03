@@ -37,6 +37,8 @@ describe("settings", () => {
     expect(parseSettings(JSON.stringify({ master: "yes" }), fb).master).toBe(false);
     expect(parseSettings(JSON.stringify({ master: true }), fb).master).toBe(true);
     expect(parseSettings(JSON.stringify({ teams: true }), fb).teams).toBe(true);
+    expect(parseSettings(JSON.stringify({ onboarded: true }), fb).onboarded).toBe(true);
+    expect(fb.onboarded).toBe(false);
   });
   it("keeps valid saved values", () => {
     const s = parseSettings(JSON.stringify({ players: 2, difficulty: "hard", lang: "ne", quick: true, sound: false }), fb);

@@ -17,6 +17,8 @@ export interface Settings {
   master: boolean;
   /** 2v2 teams when 4 play. */
   teams: boolean;
+  /** First-run onboarding finished or skipped. */
+  onboarded: boolean;
   /** This device's contribution to the fair-dice seeds. */
   clientSeed: string;
 }
@@ -35,6 +37,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     quick: false,
     master: false,
     teams: false,
+    onboarded: false,
     clientSeed: randomHex(8),
   };
 }
@@ -58,6 +61,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       master: typeof o.master === "boolean" ? o.master : fallback.master,
       teams: typeof o.teams === "boolean" ? o.teams : fallback.teams,
+      onboarded: typeof o.onboarded === "boolean" ? o.onboarded : fallback.onboarded,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };
   } catch {

@@ -891,20 +891,51 @@ a.btn {
   transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 .dice.rolling {
-  animation: tumble 0.6s cubic-bezier(0.2, 0.7, 0.3, 1);
+  animation: throw 0.6s linear;
 }
-@keyframes tumble {
+/* A real throw: lift and spin fast, drop, two shrinking bounces, then settle on the face. */
+@keyframes throw {
   0% {
     transform: translateY(0) rotateX(0) rotateY(0) rotateZ(0);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
   }
-  35% {
-    transform: translateY(-26px) rotateX(400deg) rotateY(240deg) rotateZ(80deg);
+  30% {
+    transform: translateY(-34px) rotateX(420deg) rotateY(260deg) rotateZ(70deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5);
   }
-  70% {
-    transform: translateY(0) rotateX(640deg) rotateY(520deg) rotateZ(140deg);
+  55% {
+    transform: translateY(0) rotateX(620deg) rotateY(470deg) rotateZ(120deg);
+    animation-timing-function: cubic-bezier(0.2, 0.6, 0.4, 1);
+  }
+  68% {
+    transform: translateY(-10px) rotateX(680deg) rotateY(520deg) rotateZ(130deg);
+    animation-timing-function: cubic-bezier(0.6, 0, 0.9, 0.5);
+  }
+  80% {
+    transform: translateY(0) rotateX(700deg) rotateY(540deg) rotateZ(135deg);
+  }
+  88% {
+    transform: translateY(-3px) var(--final);
   }
   100% {
     transform: var(--final);
+  }
+}
+.dice-btn:has(.dice.rolling) .dice-shadow {
+  animation: throw-shadow 0.6s linear;
+}
+@keyframes throw-shadow {
+  30% {
+    transform: scale(0.55);
+    opacity: 0.4;
+  }
+  55%,
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  68% {
+    transform: scale(0.85);
   }
 }
 .face {
@@ -1173,3 +1204,105 @@ tr.bad td {
 .marks .tok-green .token-body::after { content: "■"; }
 .marks .tok-yellow .token-body::after { content: "★"; }
 .marks .tok-blue .token-body::after { content: "●"; }
+
+/* Fairness chip opens the explainer. */
+button.fair-chip {
+  color: inherit;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+}
+.fair-hash code {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--gold-line, var(--glass-line));
+  color: var(--gold);
+  font-size: 0.78rem;
+}
+.roll-seal {
+  display: block;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Onboarding */
+.ob-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding-top: 28px;
+  animation: card-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.ob-skip {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+.ob-art {
+  width: 132px;
+  height: 96px;
+  margin-bottom: 4px;
+}
+.ob-welcome {
+  background:
+    radial-gradient(circle at 20% 50%, var(--red) 0 15px, transparent 16px),
+    radial-gradient(circle at 40% 50%, var(--green) 0 15px, transparent 16px),
+    radial-gradient(circle at 60% 50%, var(--yellow) 0 15px, transparent 16px),
+    radial-gradient(circle at 80% 50%, var(--blue) 0 15px, transparent 16px);
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.45));
+}
+.ob-win {
+  background: conic-gradient(from 45deg at 50% 50%, var(--green) 0 25%, var(--yellow) 0 50%, var(--blue) 0 75%, var(--red) 0);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+  width: 96px;
+}
+.ob-fair {
+  width: 84px;
+  background: linear-gradient(180deg, #ffd978, var(--gold));
+  clip-path: polygon(50% 0, 100% 16%, 100% 50%, 50% 100%, 0 50%, 0 16%);
+}
+.ob-fields {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.ob-fields input {
+  flex: 1;
+  min-width: 0;
+  min-height: 44px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-line);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  padding: 0 14px;
+  font: inherit;
+}
+.ob-dots {
+  display: flex;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 6px 0;
+}
+.ob-dots li {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--glass-line);
+  transition: width 0.25s;
+}
+.ob-dots li.on {
+  width: 22px;
+  background: var(--gold);
+}
+
+/* Hover must not wash the gold primary out to glass. */
+.btn.primary:hover:not(:disabled) {
+  background: linear-gradient(180deg, #ffe08f, var(--gold));
+  filter: brightness(1.04);
+}
