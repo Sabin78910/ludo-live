@@ -52,6 +52,8 @@ export interface GameState {
   master?: boolean;
   /** captured[playerIndex] = has captured at least once (tracked for the Master rule). */
   captured?: boolean[];
+  /** 2v2 teams: players 0 and 2 against 1 and 3 (opposite corners). */
+  teams?: boolean;
 }
 
 export type GameEvent =
@@ -76,6 +78,8 @@ export interface GameOptions {
   tokensPerPlayer?: number;
   /** Master rule: capture an opponent before any token may enter the home column. Works with either mode. */
   master?: boolean;
+  /** 2v2 teams (needs exactly 4 players): partners sit opposite, never capture each other, win together. */
+  teams?: boolean;
 }
 
 export class RuleError extends Error {}
@@ -84,6 +88,7 @@ export function createGame(players: Player[], opts: GameOptions = {}): GameState
   if (players.length < 2 || players.length > 4) throw new RuleError("Ludo needs 2 to 4 players");
   const colors = new Set(players.map((p) => p.color));
   if (colors.size !== players.length) throw new RuleError("Each player needs a different colour");
+  if (opts.teams && players.length !== 4) throw new RuleError("Teams need 4 players");
   const mode = opts.mode ?? "classic";
   const n = opts.tokensPerPlayer ?? TOKENS_PER_PLAYER;
   // Quick mode: every player starts with one token already on its start cell.
@@ -101,6 +106,7 @@ export function createGame(players: Player[], opts: GameOptions = {}): GameState
     rolls: [],
     master: opts.master === true,
     captured: players.map(() => false),
+    teams: opts.teams === true,
   };
 }
 
@@ -129,6 +135,18 @@ export function target(progress: number, roll: number): number | null {
   if (progress >= FINISH) return null;
   const to = progress + roll;
   return to > FINISH ? null : to; // exact roll needed to finish
+}
+
+/** True when a and b play on the same side (the same player, or partners in a team game). */
+export function sameSide(state: GameState, a: number, b: number): boolean {
+  return a === b || (state.teams === true && a % 2 === b % 2);
+}
+
+/** Players who won: the first to finish, plus their partner in a team game. */
+export function winners(state: GameState): number[] {
+  const first = state.finished[0];
+  if (state.phase !== "over" || first === undefined) return [];
+  return state.teams ? [first, (first + 2) % 4] : [first];
 }
 
 /** True while the Master rule keeps this player's tokens out of the home column. */
@@ -204,6 +222,12 @@ function advanceTurn(s: GameState, events: GameEvent[]): void {
 function endGame(s: GameState, events: GameEvent[]): void {
   // Remaining players are ranked by how far their tokens have travelled.
   const rest = active(s).sort((a, b) => totalProgress(s, b) - totalProgress(s, a));
+  // In a team game the winner's partner places right after the winner.
+  if (s.teams && s.finished.length > 0) {
+    const partner = (s.finished[0] + 2) % 4;
+    const i = rest.indexOf(partner);
+    if (i > 0) rest.unshift(...rest.splice(i, 1));
+  }
   s.finished.push(...rest);
   s.phase = "over";
   s.dice = null;
@@ -260,7 +284,7 @@ export function applyMove(state: GameState, token: number): Step {
   const cell = trackIndex(color, to);
   if (cell !== null && !isSafeIndex(cell)) {
     s.players.forEach((p, other) => {
-      if (other === me) return;
+      if (sameSide(s, me, other)) return;
       s.tokens[other].forEach((op, ti) => {
         if (trackIndex(p.color, op) === cell) {
           s.tokens[other][ti] = BASE;
@@ -285,7 +309,13 @@ export function applyMove(state: GameState, token: number): Step {
   if (s.tokens[me].every((p) => p === FINISH)) {
     s.finished.push(me);
     events.push({ type: "finish", player: me, place: s.finished.length });
-    if (active(s).length <= 1) {
+    const partnerDone = s.teams === true && s.finished.includes((me + 2) % 4);
+    if (partnerDone) {
+      // The first team to bring both players home wins: put that pair at the top of the order.
+      const partner = (me + 2) % 4;
+      s.finished = [partner, me, ...s.finished.filter((p) => p !== me && p !== partner)];
+    }
+    if (active(s).length <= 1 || partnerDone) {
       endGame(s, events);
       return { state: s, events };
     }

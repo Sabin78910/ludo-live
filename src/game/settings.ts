@@ -15,6 +15,8 @@ export interface Settings {
   quick: boolean;
   /** Master rule: capture before entering home. */
   master: boolean;
+  /** 2v2 teams when 4 play. */
+  teams: boolean;
   /** This device's contribution to the fair-dice seeds. */
   clientSeed: string;
 }
@@ -32,6 +34,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     players: 4,
     quick: false,
     master: false,
+    teams: false,
     clientSeed: randomHex(8),
   };
 }
@@ -54,6 +57,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       master: typeof o.master === "boolean" ? o.master : fallback.master,
+      teams: typeof o.teams === "boolean" ? o.teams : fallback.teams,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };
   } catch {

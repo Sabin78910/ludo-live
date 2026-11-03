@@ -9,6 +9,8 @@ import {
   createGame,
   distinctMoves,
   homeLocked,
+  sameSide,
+  winners,
   isSafeIndex,
   legalMoves,
   passTurn,
@@ -335,5 +337,57 @@ describe("Master rule", () => {
   it("treats saved games without the field as classic", () => {
     const g = applyRoll(setup([[48, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]], two, { master: undefined, captured: undefined }), 4).state;
     expect(legalMoves(g)).toEqual([0]);
+  });
+});
+
+describe("2v2 teams", () => {
+  const teams = (tokens: number[][], extra: Partial<GameState> = {}) =>
+    ({ ...createGame(four, { teams: true }), tokens: tokens.map((t) => [...t]), ...extra }) as GameState;
+  const home = [FINISH, FINISH, FINISH, FINISH];
+
+  it("needs exactly four players", () => {
+    expect(() => createGame(two, { teams: true })).toThrow(RuleError);
+    expect(createGame(four, { teams: true }).teams).toBe(true);
+  });
+  it("pairs opposite seats", () => {
+    const g = createGame(four, { teams: true });
+    expect(sameSide(g, 0, 2)).toBe(true);
+    expect(sameSide(g, 1, 3)).toBe(true);
+    expect(sameSide(g, 0, 1)).toBe(false);
+    expect(sameSide(createGame(four), 0, 2)).toBe(false);
+  });
+  it("never captures a partner", () => {
+    // Red (0) moves 3 -> 5 = cell 5. Yellow (2, partner) at progress 31 sits on cell 5 too.
+    const g = applyRoll(teams([[3, BASE, BASE, BASE], [BASE, BASE, BASE, BASE], [31, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]]), 2).state;
+    const { state, events } = applyMove(g, 0);
+    expect(events.some((e) => e.type === "capture")).toBe(false);
+    expect(state.tokens[2][0]).toBe(31);
+  });
+  it("keeps playing when one partner finishes", () => {
+    const g = applyRoll(teams([[FINISH, FINISH, FINISH, 55], [0, BASE, BASE, BASE], [BASE, BASE, BASE, BASE], [BASE, BASE, BASE, BASE]]), 1).state;
+    const { state } = applyMove(g, 3);
+    expect(state.phase).toBe("roll");
+    expect(state.finished).toEqual([0]);
+  });
+  it("the first pair to bring everyone home wins together, even if the other side finished a player first", () => {
+    // Red (0) already finished; green (1) and blue (3) finish and win.
+    const g = applyRoll(
+      teams([home, [FINISH, FINISH, FINISH, 55], [5, BASE, BASE, BASE], home], { finished: [0, 3], current: 1 }),
+      1,
+    ).state;
+    const { state } = applyMove(g, 3);
+    expect(state.phase).toBe("over");
+    expect(state.finished.slice(0, 2)).toEqual([3, 1]);
+    expect(winners(state).sort()).toEqual([1, 3]);
+  });
+  it("quick mode with teams: the partner shares the win", () => {
+    const g = applyRoll({ ...createGame(four, { teams: true, mode: "quick" }), tokens: [[55, BASE, BASE, BASE], [0, BASE, BASE, BASE], [3, BASE, BASE, BASE], [9, BASE, BASE, BASE]] }, 1).state;
+    const { state } = applyMove(g, 0);
+    expect(state.finished.slice(0, 2)).toEqual([0, 2]);
+    expect(winners(state)).toEqual([0, 2]);
+  });
+  it("classic games still have a single winner", () => {
+    const g = applyRoll(setup([[FINISH, FINISH, FINISH, 55], [0, BASE, BASE, BASE]]), 1).state;
+    expect(winners(applyMove(g, 3).state)).toEqual([0]);
   });
 });

@@ -12,9 +12,9 @@ export interface LocalSeat extends Player {
 
 export const BOT_THINK_MS = 450;
 
-export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: string, reduced: boolean, master = false): Controller {
+export function useLocalGame(seats: LocalSeat[], quick: boolean, clientSeed: string, reduced: boolean, master = false, teams = false): Controller {
   const [snap, setSnap] = useState<{ state: GameState; events: GameEvent[]; seq: number; prev: number[][] }>(() => {
-    const state = createGame(seats.map(({ color, name }) => ({ color, name })), { mode: quick ? "quick" : "classic", master });
+    const state = createGame(seats.map(({ color, name }) => ({ color, name })), { mode: quick ? "quick" : "classic", master, teams: teams && seats.length === 4 });
     return { state, events: [], seq: 0, prev: state.tokens };
   });
   const [dealer, setDealer] = useState<FairDealer | null>(null);
