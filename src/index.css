@@ -1209,6 +1209,113 @@ tr.bad td {
 .marks .tok-yellow .token-body::after { content: "★"; }
 .marks .tok-blue .token-body::after { content: "●"; }
 
+/* Line icons sit on the text baseline and take the text colour. */
+.icon {
+  flex: none;
+  vertical-align: -0.2em;
+}
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+}
+.mc-icon {
+  color: var(--text);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-color: var(--gold-line);
+  color: var(--gold);
+}
+.mode-card {
+  border-color: var(--gold-line);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 40px rgba(0, 0, 0, 0.28);
+}
+
+/* Large text: everything is sized in rem, so scaling the root scales the whole app. */
+html.large-text {
+  font-size: 118.75%;
+}
+
+/* Board finishes. Cosmetic only; track colours stay the classic four so seats read the same. */
+[data-board="wood"] {
+  --board: #6b4426;
+  --yard: #f3e3c8;
+  --cell: #f6e8cf;
+  --cell-line: #9b7149;
+  --star: #8a5a32;
+  --edge1: #573519;
+  --edge2: #42260f;
+  --edge3: #2c1807;
+}
+[data-board="marble"] {
+  --board: #d9d4ca;
+  --yard: #fbfaf8;
+  --cell: #ffffff;
+  --cell-line: #c8a85a;
+  --star: #b49a5c;
+  --edge1: #cfcac0;
+  --edge2: #b0a998;
+  --edge3: #8c8574;
+}
+[data-board="neon"] {
+  --board: #0e1433;
+  --yard: #151c45;
+  --cell: #1a2250;
+  --cell-line: #3a4a9a;
+  --star: #f5c451;
+  --edge1: #1b2459;
+  --edge2: #121a44;
+  --edge3: #0a0f2c;
+}
+[data-board="neon"] .board-tilt {
+  filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.35));
+}
+.boards {
+  flex-wrap: wrap;
+}
+.boards button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: calc(50% - 4px);
+}
+.swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+}
+.sw-classic {
+  background: conic-gradient(var(--red) 0 25%, var(--green) 0 50%, var(--yellow) 0 75%, var(--blue) 0);
+}
+.sw-wood {
+  background: repeating-linear-gradient(100deg, #6b4426 0 3px, #8a5a32 3px 5px);
+}
+.sw-marble {
+  background: linear-gradient(135deg, #fbfaf8, #d9d4c8 55%, #fbfaf8);
+}
+.sw-neon {
+  background: #0e1433;
+  box-shadow: inset 0 0 0 2px #3b82f6, 0 0 8px #3b82f6;
+}
+
+/* Room QR: white card so any camera reads it, sized to scan across a table. */
+.qr {
+  margin: 16px auto 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.qr svg {
+  width: min(220px, 70vw);
+  height: auto;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px var(--gold), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
 /* Fairness chip opens the explainer. */
 button.fair-chip {
   color: inherit;
@@ -1309,109 +1416,20 @@ button.fair-chip {
 .btn.primary:hover:not(:disabled) {
   background: linear-gradient(180deg, #ffe08f, var(--gold));
   filter: brightness(1.04);
-/* Room QR: white card so any camera reads it, sized to scan across a table. */
-.qr {
-  margin: 16px auto 0;
-  display: grid;
-  justify-items: center;
-  gap: 8px;
 }
-.qr svg {
-  width: min(220px, 70vw);
-  height: auto;
-  border-radius: 14px;
-  box-shadow: 0 0 0 1px var(--gold), 0 12px 30px rgba(0, 0, 0, 0.35);
-/* Line icons sit on the text baseline and take the text colour. */
-.icon {
-  flex: none;
-  vertical-align: -0.2em;
-}
-.icon-btn {
-  display: inline-grid;
-  place-items: center;
-}
-.mc-icon {
-  color: var(--text);
-}
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border-color: var(--gold-line);
+
+/* Bot reasoning line and tier notes. */
+.bot-note {
+  display: block;
   color: var(--gold);
+  font-size: 0.8rem;
 }
-.mode-card {
-  border-color: var(--gold-line);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 14px 40px rgba(0, 0, 0, 0.28);
+.seg-note {
+  flex-basis: 100%;
+  color: var(--muted);
 }
-
-/* Large text: everything is sized in rem, so scaling the root scales the whole app. */
-html.large-text {
-  font-size: 118.75%;
-}
-
-/* Board finishes. Cosmetic only; track colours stay the classic four so seats read the same. */
-[data-board="wood"] {
-  --board: #6b4426;
-  --yard: #f3e3c8;
-  --cell: #f6e8cf;
-  --cell-line: #9b7149;
-  --star: #8a5a32;
-  --edge1: #573519;
-  --edge2: #42260f;
-  --edge3: #2c1807;
-}
-[data-board="marble"] {
-  --board: #d9d4ca;
-  --yard: #fbfaf8;
-  --cell: #ffffff;
-  --cell-line: #c8a85a;
-  --star: #b49a5c;
-  --edge1: #cfcac0;
-  --edge2: #b0a998;
-  --edge3: #8c8574;
-}
-[data-board="neon"] {
-  --board: #0e1433;
-  --yard: #151c45;
-  --cell: #1a2250;
-  --cell-line: #3a4a9a;
-  --star: #f5c451;
-  --edge1: #1b2459;
-  --edge2: #121a44;
-  --edge3: #0a0f2c;
-}
-[data-board="neon"] .board-tilt {
-  filter: drop-shadow(0 0 18px rgba(59, 130, 246, 0.35));
-}
-.boards {
+.seg:has(.seg-note) {
   flex-wrap: wrap;
-}
-.boards button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: calc(50% - 4px);
-}
-.swatch {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
-}
-.sw-classic {
-  background: conic-gradient(var(--red) 0 25%, var(--green) 0 50%, var(--yellow) 0 75%, var(--blue) 0);
-}
-.sw-wood {
-  background: repeating-linear-gradient(100deg, #6b4426 0 3px, #8a5a32 3px 5px);
-}
-.sw-marble {
-  background: linear-gradient(135deg, #fbfaf8, #d9d4c8 55%, #fbfaf8);
-}
-.sw-neon {
-  background: #0e1433;
-  box-shadow: inset 0 0 0 2px #3b82f6, 0 0 8px #3b82f6;
 }
 
 /* Recent players */
@@ -1452,16 +1470,4 @@ html.large-text {
 }
 .forget {
   align-self: center;
-/* Bot reasoning line and tier notes. */
-.bot-note {
-  display: block;
-  color: var(--gold);
-  font-size: 0.8rem;
-}
-.seg-note {
-  flex-basis: 100%;
-  color: var(--muted);
-}
-.seg:has(.seg-note) {
-  flex-wrap: wrap;
 }
