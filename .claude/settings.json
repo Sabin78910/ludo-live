@@ -1,0 +1,59 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "allow": [
+      "Bash(npm ci)",
+      "Bash(npm install)",
+      "Bash(npm test)",
+      "Bash(npm test:*)",
+      "Bash(npm run test:*)",
+      "Bash(npm run build)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run lint)",
+      "Bash(npm run dev)",
+      "Bash(npm run preview)",
+      "Bash(npx vitest:*)",
+      "Bash(npx tsc --noEmit:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm run cap:sync)",
+      "Bash(cd worker && npm ci)",
+      "Bash(npx wrangler deploy --dry-run:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git switch:*)",
+      "Bash(git checkout -b:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "ask": [
+      "Bash(git tag:*)",
+      "Bash(gh pr merge:*)",
+      "Bash(npx wrangler deploy)",
+      "Bash(cd worker && npx wrangler deploy)"
+    ],
+    "deny": [
+      "Bash(git push origin main)",
+      "Bash(git push origin main:*)",
+      "Bash(git push origin HEAD:main:*)",
+      "Bash(git push --force:*)",
+      "Bash(git push -f:*)",
+      "Bash(gh secret:*)",
+      "Bash(gh release create:*)",
+      "Bash(fastlane:*)",
+      "Bash(bundle exec fastlane:*)",
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Edit(./.env)",
+      "Edit(./.env.*)",
+      "Read(./**/*.keystore)",
+      "Read(./**/*.jks)",
+      "Edit(./**/*.keystore)",
+      "Edit(./**/*.jks)",
+      "Read(./.dev.vars)",
+      "Edit(./.dev.vars)"
+    ]
+  }
+}
