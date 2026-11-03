@@ -4,6 +4,7 @@ import { inviteLink, whatsappUrl } from "../game/share";
 import { useOnlineRoom } from "../online/useOnlineRoom";
 import { GameView } from "./GameView";
 import type { Proof } from "./Verify";
+import { Icon } from "./Icon";
 
 export interface OnlineProps {
   url: string;
@@ -91,7 +92,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
   return (
     <main className="screen lobby">
       <button type="button" className="btn ghost back" onClick={p.onExit}>
-        ← {t(lang, "leave")}
+        <Icon name="back" size={18} /> {t(lang, "leave")}
       </button>
       <p className="eyebrow">{t(lang, "roomCode")}</p>
       <h1 className="room-code" aria-label={`${t(lang, "roomCode")} ${p.code.split("").join(" ")}`}>
@@ -124,7 +125,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
           <ul>
             {room.seats.map((s, i) => (
               <li key={i} className={s.connected ? "" : "dim"}>
-                <span className="avatar">{s.bot ? "🤖" : s.name.slice(0, 1).toUpperCase()}</span>
+                <span className="avatar">{s.bot ? <Icon name="bot" size={18} /> : s.name.slice(0, 1).toUpperCase()}</span>
                 <span className="pname">
                   {s.name}
                   {i === room.you && ` (${t(lang, "you")})`}
@@ -149,20 +150,20 @@ export function OnlineRoomScreen(p: OnlineProps) {
               <label className="switch">
                 <input type="checkbox" checked={quick} onChange={(e) => setQuick(e.target.checked)} />
                 <span>
-                  ⚡ {t(lang, "quickMode")} <small>{t(lang, "quickModeSub")}</small>
+                  <Icon name="bolt" /> {t(lang, "quickMode")} <small>{t(lang, "quickModeSub")}</small>
                 </span>
               </label>
               <label className="switch">
                 <input type="checkbox" checked={master} onChange={(e) => setMaster(e.target.checked)} />
                 <span>
-                  🎯 {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
+                  <Icon name="target" /> {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
                 </span>
               </label>
               {room.seats.length === 4 && (
                 <label className="switch">
                   <input type="checkbox" checked={teams} onChange={(e) => setTeams(e.target.checked)} />
                   <span>
-                    🤝 {t(lang, "teamsMode")} <small>{t(lang, "teamsModeSub")}</small>
+                    <Icon name="team" /> {t(lang, "teamsMode")} <small>{t(lang, "teamsModeSub")}</small>
                   </span>
                 </label>
               )}
@@ -175,7 +176,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
           )}
           {error && <p className="verdict bad">{error.message}</p>}
           <p className="muted small">
-            🔒 {t(lang, "fairChip")}: <code>{room.serverSeedHash.slice(0, 16)}…</code>
+            <Icon name="shield" size={16} /> {t(lang, "fairChip")}: <code>{room.serverSeedHash.slice(0, 16)}…</code>
           </p>
         </section>
       )}
