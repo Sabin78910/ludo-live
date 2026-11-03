@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { verifyRolls, type VerifyResult } from "../engine/fair";
 import { t, type Lang } from "../game/i18n";
+import { Icon } from "./Icon";
 
 export interface Proof {
   serverSeed: string;
@@ -34,9 +35,9 @@ export function Verify({ proof, lang, onBack }: { proof: Proof; lang: Lang; onBa
   return (
     <main className="screen verify">
       <button type="button" className="btn ghost back" onClick={onBack}>
-        ← {t(lang, "back")}
+        <Icon name="back" size={18} /> {t(lang, "back")}
       </button>
-      <h1>🔒 {t(lang, "verifyTitle")}</h1>
+      <h1><Icon name="shield" size={28} /> {t(lang, "verifyTitle")}</h1>
       <p className="muted">{t(lang, "verifyIntro")}</p>
       <dl className="proof glass">
         <dt>{t(lang, "serverSeedHash")}</dt>

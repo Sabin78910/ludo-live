@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import type { Color } from "../engine/rules";
 import { t, type Lang, type StringKey } from "../game/i18n";
+import { Icon } from "./Icon";
 
 const CONFETTI = ["#EF3B4F", "#22C55E", "#FACC15", "#3B82F6", "#F5C451", "#ffffff"];
 
@@ -48,7 +49,7 @@ export function Results({
       )}
       <div className="results-card">
         <div className="trophy" aria-hidden="true">
-          🏆
+          <Icon name="trophy" size={56} />
         </div>
         <h2>{title}</h2>
         <div className="podium">
@@ -74,7 +75,7 @@ export function Results({
             </button>
           )}
           <button type="button" className="btn" onClick={onVerify}>
-            🔒 {t(lang, "verify")}
+            <Icon name="shield" size={18} /> {t(lang, "verify")}
           </button>
           <button type="button" className="btn ghost" onClick={onHome}>
             {t(lang, "home")}
