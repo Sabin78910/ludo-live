@@ -31,6 +31,8 @@ describe("settings", () => {
     expect(s.difficulty).toBe(fb.difficulty);
     expect(s.lang).toBe(fb.lang);
     expect(s.clientSeed).toBe(fb.clientSeed);
+    expect(parseSettings(JSON.stringify({ marks: true }), fb).marks).toBe(true);
+    expect(parseSettings(JSON.stringify({ marks: "yes" }), fb).marks).toBe(fb.marks);
   });
   it("keeps valid saved values", () => {
     const s = parseSettings(JSON.stringify({ players: 2, difficulty: "hard", lang: "ne", quick: true, sound: false }), fb);
@@ -95,6 +97,7 @@ describe("animation frames", () => {
   it("picks the right toast", () => {
     expect(eventToast([{ type: "forfeit", player: 0 }])).toBe("threeSixes");
     expect(eventToast([{ type: "bonus", player: 0, reason: "six" }])).toBe("rolledSix");
+    expect(eventToast([{ type: "home", player: 0, token: 1 }, { type: "bonus", player: 0, reason: "home" }])).toBe("tokenHome");
     expect(eventToast([{ type: "turn", player: 1 }])).toBeNull();
   });
 });

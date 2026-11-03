@@ -60,9 +60,10 @@ function emptyFor(events: GameEvent[]): number[][] {
 }
 
 /** The status message key for the latest events. */
-export function eventToast(events: GameEvent[]): "rolledSix" | "captured" | "threeSixes" | "noMoves" | null {
+export function eventToast(events: GameEvent[]): "rolledSix" | "captured" | "tokenHome" | "threeSixes" | "noMoves" | null {
   if (events.some((e) => e.type === "forfeit")) return "threeSixes";
   if (events.some((e) => e.type === "capture")) return "captured";
+  if (events.some((e) => e.type === "home")) return "tokenHome";
   if (events.some((e) => e.type === "noMoves")) return "noMoves";
   if (events.some((e) => e.type === "bonus" && e.reason === "six")) return "rolledSix";
   return null;
