@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { t, type Lang } from "../game/i18n";
+import { QUIET_ZONE, qrPath } from "../game/qr";
 import { inviteLink, whatsappUrl } from "../game/share";
 import { useOnlineRoom } from "../online/useOnlineRoom";
 import { GameView } from "./GameView";
@@ -31,6 +32,8 @@ export function OnlineRoomScreen(p: OnlineProps) {
   const lang = p.lang;
   const link = inviteLink(p.code, window.location);
   const shareText = `${t(lang, "shareText", { code: p.code })} ${link}`;
+  const qr = useMemo(() => qrPath(link), [link]);
+  const [showQr, setShowQr] = useState(false);
 
   if (error && (error.code === "not_found" || error.code === "full" || error.code === "started" || error.code === "exists") && !room) {
     return (
@@ -109,12 +112,24 @@ export function OnlineRoomScreen(p: OnlineProps) {
           <button type="button" className="btn" onClick={copy}>
             {copied ? t(lang, "copied") : t(lang, "copyLink")}
           </button>
+          <button type="button" className="btn" aria-expanded={showQr} onClick={() => setShowQr((v) => !v)}>
+            {t(lang, "showQr")}
+          </button>
           {"share" in navigator && (
             <button type="button" className="btn" onClick={nativeShare}>
               {t(lang, "share")}
             </button>
           )}
         </div>
+        {showQr && (
+          <figure className="qr">
+            <svg viewBox={`0 0 ${qr.size + QUIET_ZONE * 2} ${qr.size + QUIET_ZONE * 2}`} role="img" aria-label={t(lang, "qrLabel", { code: p.code })} shapeRendering="crispEdges">
+              <rect width="100%" height="100%" fill="#fff" />
+              <path d={qr.d} fill="#0b1026" />
+            </svg>
+            <figcaption className="muted">{t(lang, "qrHint")}</figcaption>
+          </figure>
+        )}
       </section>
       {room && (
         <section className="glass seats">

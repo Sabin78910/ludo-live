@@ -1173,3 +1173,17 @@ tr.bad td {
 .marks .tok-green .token-body::after { content: "■"; }
 .marks .tok-yellow .token-body::after { content: "★"; }
 .marks .tok-blue .token-body::after { content: "●"; }
+
+/* Room QR: white card so any camera reads it, sized to scan across a table. */
+.qr {
+  margin: 16px auto 0;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+}
+.qr svg {
+  width: min(220px, 70vw);
+  height: auto;
+  border-radius: 14px;
+  box-shadow: 0 0 0 1px var(--gold), 0 12px 30px rgba(0, 0, 0, 0.35);
+}
