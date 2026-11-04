@@ -14,6 +14,8 @@ export interface Settings {
   marks: boolean;
   name: string;
   difficulty: Difficulty;
+  /** Auto bot level: picks the tier from the on-device skill rating. */
+  autoLevel: boolean;
   players: number;
   quick: boolean;
   /** Master rule: capture before entering home. */
@@ -40,6 +42,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     marks: false,
     name: "",
     difficulty: "normal",
+    autoLevel: true,
     players: 4,
     quick: false,
     master: false,
@@ -66,6 +69,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       marks: typeof o.marks === "boolean" ? o.marks : fallback.marks,
       name: typeof o.name === "string" ? o.name.slice(0, 16) : fallback.name,
       difficulty: o.difficulty === "easy" || o.difficulty === "hard" || o.difficulty === "normal" ? o.difficulty : fallback.difficulty,
+      autoLevel: typeof o.autoLevel === "boolean" ? o.autoLevel : fallback.autoLevel,
       players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       master: typeof o.master === "boolean" ? o.master : fallback.master,

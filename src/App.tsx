@@ -10,6 +10,7 @@ import { play, prefersReducedMotion } from "./game/sound";
 import { forgetFriend, loadFriends, rememberPlayers, saveFriends, type Friend } from "./game/friends";
 import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { loadRating, pickDifficulty, saveRating, updateRating } from "./game/skill";
 import { needsOnboarding } from "./game/onboarding";
 import { GameView } from "./ui/GameView";
 import { Onboarding } from "./ui/Onboarding";
@@ -45,12 +46,22 @@ export default function App() {
       saveFriends(next);
       return next;
     });
-  const onGameOver = (won: boolean) =>
+  const [rating, setRating] = useState(loadRating);
+  const botLevel = (s: Settings): Difficulty => (s.autoLevel ? pickDifficulty(rating) : s.difficulty);
+  const onGameOver = (won: boolean, seats?: LocalSeat[]) => {
+    const bots = seats?.filter((x) => x.bot) ?? [];
+    if (bots.length && bots[0].bot)
+      setRating((r) => {
+        const next = updateRating(r, bots[0].bot!, won, bots.length);
+        saveRating(next);
+        return next;
+      });
     setStats((s) => {
       const next = recordGame(s, won, dayKey(new Date()));
       saveStats(next);
       return next;
     });
+  };
   const { canInstall, install } = useInstallPrompt();
   const lang = settings.lang;
 
@@ -101,7 +112,7 @@ export default function App() {
         teams={screen.teams}
         settings={settings}
         reduced={reduced}
-        onGameOver={onGameOver}
+        onGameOver={(won) => onGameOver(won, screen.seats)}
         onExit={() => setScreen({ name: "home" })}
         onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
@@ -139,7 +150,7 @@ export default function App() {
       const seats: LocalSeat[] = colors.map((color, i) => ({
         color,
         name: bots ? (i === 0 ? myName : `${t(lang, "bot")} ${i}`) : i === 0 && settings.name ? settings.name : `${t(lang, "player")} ${i + 1}`,
-        bot: bots && i > 0 ? settings.difficulty : null,
+        bot: bots && i > 0 ? botLevel(settings) : null,
       }));
       setScreen({ name: "local", seats, quick: settings.quick, master: settings.master, teams: settings.teams && settings.players === 4, key: Date.now() });
     };
@@ -166,11 +177,18 @@ export default function App() {
             <fieldset className="seg">
               <legend>{t(lang, "difficulty")}</legend>
               {DIFFICULTIES.map((d: Difficulty) => (
-                <button key={d} type="button" aria-pressed={settings.difficulty === d} onClick={() => update({ difficulty: d })}>
+                <button key={d} type="button" aria-pressed={!settings.autoLevel && settings.difficulty === d} onClick={() => update({ difficulty: d, autoLevel: false })}>
                   {t(lang, d as StringKey)}
                 </button>
               ))}
-              <small className="seg-note">{t(lang, `${settings.difficulty}Sub`)}</small>
+              <button type="button" aria-pressed={settings.autoLevel} onClick={() => update({ autoLevel: true })}>
+                {t(lang, "auto")}
+              </button>
+              <small className="seg-note">
+                {settings.autoLevel
+                  ? t(lang, "autoSub", { level: t(lang, pickDifficulty(rating)) })
+                  : t(lang, `${settings.difficulty}Sub`)}
+              </small>
             </fieldset>
           )}
           <label className="switch">
@@ -215,7 +233,7 @@ export default function App() {
     const seats: LocalSeat[] = colors.map((color, i) => ({
       color,
       name: i === 0 ? s.name.trim() || t(s.lang, "you") : `${t(s.lang, "bot")} ${i}`,
-      bot: i > 0 ? s.difficulty : null,
+      bot: i > 0 ? botLevel(s) : null,
     }));
     setScreen({ name: "local", seats, quick: s.quick, master: s.master, teams: s.teams && s.players === 4, key: Date.now() });
   };
