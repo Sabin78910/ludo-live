@@ -106,6 +106,7 @@ export default function App() {
         settings={settings}
         reduced={reduced}
         onGameOver={onGameOver}
+        wins={stats.won}
         onExit={() => setScreen({ name: "home" })}
         onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
@@ -124,6 +125,7 @@ export default function App() {
         haptics={settings.haptics}
         reduced={reduced}
         onGameOver={onGameOver}
+        wins={stats.won}
         onExit={() => setScreen({ name: "home" })}
         onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
@@ -478,6 +480,7 @@ function LocalGame({
   settings,
   reduced,
   onGameOver,
+  wins,
   onExit,
   onAgain,
   onVerify,
@@ -489,6 +492,7 @@ function LocalGame({
   settings: Settings;
   reduced: boolean;
   onGameOver(won: boolean): void;
+  wins: number;
   onExit(): void;
   onAgain(): void;
   onVerify(p: Proof): void;
@@ -504,6 +508,7 @@ function LocalGame({
       haptics={settings.haptics}
       reduced={reduced}
       onGameOver={onGameOver}
+      wins={wins}
       onExit={onExit}
       onAgain={onAgain}
       onVerify={() =>

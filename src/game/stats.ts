@@ -67,3 +67,14 @@ export function saveStats(s: Stats, storage: Pick<Storage, "setItem"> | undefine
     // Private mode or full storage: stats just won't persist.
   }
 }
+
+/** Win-count trophies. Gaps widen so each one feels earned. */
+export const TROPHIES = [1, 3, 5, 10, 25, 50, 100, 250, 500, 1000] as const;
+
+/** Where a win total sits between trophies; `fresh` means this exact total just earned one. */
+export function trophyProgress(won: number): { prev: number; next: number | null; fraction: number; fresh: boolean } {
+  const next = TROPHIES.find((n) => n > won) ?? null;
+  const prev = [...TROPHIES].reverse().find((n) => n <= won) ?? 0;
+  const fraction = next === null ? 1 : (won - prev) / (next - prev);
+  return { prev, next, fraction, fresh: (TROPHIES as readonly number[]).includes(won) };
+}

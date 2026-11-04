@@ -54,6 +54,7 @@ export function SnakesGame(props: {
   haptics: boolean;
   reduced: boolean;
   onGameOver(won: boolean): void;
+  wins?: number;
   onExit(): void;
   onAgain(): void;
   onVerify(p: Proof): void;
@@ -172,6 +173,8 @@ export function SnakesGame(props: {
           title={t(lang, "wins", { name: seats[state.winner].name })}
           order={finishOrder(state.positions, state.winner).map((i) => seats[i])}
           reduced={reduced}
+          wins={seats.some((s) => s.bot) ? props.wins : undefined}
+          won={state.winner === 0}
           onAgain={props.onAgain}
           onHome={props.onExit}
           onVerify={() =>

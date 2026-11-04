@@ -1,4 +1,4 @@
-import { emptyStats, liveStreak, parseStats, recordGame } from "./stats";
+import { emptyStats, liveStreak, parseStats, recordGame, trophyProgress } from "./stats";
 
 describe("stats", () => {
   it("counts games and wins and starts a streak", () => {
@@ -22,5 +22,14 @@ describe("stats", () => {
   it("survives corrupt storage", () => {
     expect(parseStats("{nope")).toEqual(emptyStats());
     expect(parseStats('{"played":-4,"won":9,"lastDay":"x"}')).toEqual(emptyStats());
+  });
+});
+
+describe("trophyProgress", () => {
+  it("shows distance to the next trophy and flags a freshly earned one", () => {
+    expect(trophyProgress(0)).toEqual({ prev: 0, next: 1, fraction: 0, fresh: false });
+    expect(trophyProgress(4)).toEqual({ prev: 3, next: 5, fraction: 0.5, fresh: false });
+    expect(trophyProgress(10)).toMatchObject({ prev: 10, next: 25, fraction: 0, fresh: true });
+    expect(trophyProgress(5000)).toMatchObject({ next: null, fraction: 1 });
   });
 });
