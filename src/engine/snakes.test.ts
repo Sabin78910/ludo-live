@@ -1,4 +1,4 @@
-import { snakesFrames } from "../ui/SnakesGame";
+import { finishOrder, snakesFrames } from "../ui/SnakesGame";
 import { applySnakesRoll, cellOf, createSnakes, LADDERS, SNAKES, snakesAnimMs, walkPath, type SnakesState } from "./snakes";
 
 const at = (positions: number[], current = 0): SnakesState => ({ ...createSnakes(positions.length), positions, current });
@@ -66,5 +66,9 @@ describe("snakes & ladders", () => {
     const frames = snakesFrames(applySnakesRoll(at([0, 0]), 4).events);
     expect(frames.map((f) => f.square)).toEqual([1, 2, 3, 4, 25]);
     expect(frames[4].toast).toEqual(["laddered", 25]);
+  });
+
+  it("ranks the podium: winner first, then furthest up the board", () => {
+    expect(finishOrder([40, 100, 72, 3], 1)).toEqual([1, 2, 0, 3]);
   });
 });

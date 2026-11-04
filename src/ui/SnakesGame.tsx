@@ -7,6 +7,7 @@ import { t, type Lang, type StringKey } from "../game/i18n";
 import { play, vibrate, type Sfx } from "../game/sound";
 import { Dice } from "./Dice";
 import { Icon } from "./Icon";
+import { Results } from "./Results";
 import type { Proof } from "./Verify";
 
 export interface SnakesSeat {
@@ -38,6 +39,11 @@ export function snakesFrames(events: SnakesEvent[]): Frame[] {
     if (e.type === "threeSixes") frames.push({ player: e.player, square: -1, ms: 400, toast: ["threeSixes"] });
   }
   return frames;
+}
+
+/** Podium order: the winner, then whoever is furthest up the board. */
+export function finishOrder(positions: number[], winner: number): number[] {
+  return positions.map((_, i) => i).sort((a, b) => (a === winner ? -1 : b === winner ? 1 : positions[b] - positions[a]));
 }
 
 export function SnakesGame(props: {
@@ -161,30 +167,18 @@ export function SnakesGame(props: {
         <p className="snakes-turn">{state.phase === "roll" ? turnText : ""}</p>
       </div>
       {over && state.winner !== null && (
-        <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "wins", { name: seats[state.winner].name })}>
-          <div className="results-card">
-            <Icon name="trophy" size={48} />
-            <h2>{t(lang, "wins", { name: seats[state.winner].name })}</h2>
-            <button type="button" className="btn primary big" onClick={props.onAgain}>
-              {t(lang, "playAgain")}
-            </button>
-            <div className="row-btns">
-              <button type="button" className="btn" onClick={props.onExit}>
-                {t(lang, "home")}
-              </button>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() =>
-                  dealer &&
-                  props.onVerify({ serverSeed: dealer.reveal(), serverSeedHash: dealer.serverSeedHash, clientSeeds, rolls: state.rolls, names: seats.map((s) => s.name) })
-                }
-              >
-                <Icon name="shield" size={18} /> {t(lang, "verify")}
-              </button>
-            </div>
-          </div>
-        </div>
+        <Results
+          lang={lang}
+          title={t(lang, "wins", { name: seats[state.winner].name })}
+          order={finishOrder(state.positions, state.winner).map((i) => seats[i])}
+          reduced={reduced}
+          onAgain={props.onAgain}
+          onHome={props.onExit}
+          onVerify={() =>
+            dealer &&
+            props.onVerify({ serverSeed: dealer.reveal(), serverSeedHash: dealer.serverSeedHash, clientSeeds, rolls: state.rolls, names: seats.map((s) => s.name) })
+          }
+        />
       )}
     </main>
   );
