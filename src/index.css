@@ -1940,3 +1940,21 @@ button.tile:active {
     transition: none;
   }
 }
+
+/* Polish: the turn dice sits beside the seat without hiding its progress pips, and the turn status
+   reads as a clear pill instead of loose text under the board. */
+.pod .dice-btn {
+  width: 52px;
+  height: 52px;
+  margin: -4px 0;
+}
+.pod .pips {
+  flex-shrink: 0;
+}
+.status-line strong {
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  letter-spacing: 0.01em;
+}
