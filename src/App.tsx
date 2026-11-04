@@ -26,7 +26,7 @@ const WS_URL = import.meta.env.VITE_WS_URL;
 type Screen =
   | { name: "home" }
   | { name: "setup"; mode: "bots" | "local" }
-  | { name: "local"; seats: LocalSeat[]; quick: boolean; master: boolean; teams: boolean; key: number }
+  | { name: "local"; seats: LocalSeat[]; quick: boolean; master: boolean; teams: boolean; six?: boolean; key: number }
   | { name: "snakesSetup" }
   | { name: "snakes"; seats: SnakesSeat[]; key: number }
   | { name: "online"; code: string; create: boolean }
@@ -135,6 +135,7 @@ export default function App() {
         quick={screen.quick}
         master={screen.master}
         teams={screen.teams}
+        six={screen.six === true}
         settings={settings}
         reduced={reduced}
         onGameOver={(won) => onGameOver(won, screen.seats)}
@@ -168,7 +169,7 @@ export default function App() {
   if (screen.name === "snakesSetup") {
     const start = () => {
       tap();
-      const seats: SnakesSeat[] = seatColors(settings.players).map((color, i) => ({
+      const seats: SnakesSeat[] = seatColors(Math.min(settings.players, 4)).map((color, i) => ({
         color,
         name: i === 0 ? myName : slBots ? `${t(lang, "computer")} ${i}` : `${t(lang, "player")} ${i + 1}`,
         bot: slBots && i > 0,
@@ -238,13 +239,13 @@ export default function App() {
     const bots = screen.mode === "bots";
     const start = () => {
       tap();
-      const colors = seatColors(settings.players);
+      const colors = seatColors(settings.players, settings.six);
       const seats: LocalSeat[] = colors.map((color, i) => ({
         color,
         name: bots ? (i === 0 ? myName : `${t(lang, "bot")} ${i}`) : i === 0 && settings.name ? settings.name : `${t(lang, "player")} ${i + 1}`,
         bot: bots && i > 0 ? botLevel(settings) : null,
       }));
-      setScreen({ name: "local", seats, quick: settings.quick, master: settings.master, teams: settings.teams && settings.players === 4, key: Date.now() });
+      setScreen({ name: "local", seats, quick: settings.quick, master: settings.master, teams: !settings.six && settings.teams && settings.players === 4, six: settings.six, key: Date.now() });
     };
     return (
       <main className="screen setup">
@@ -258,8 +259,17 @@ export default function App() {
             <input value={settings.name} maxLength={16} onChange={(e) => update({ name: e.target.value })} placeholder={t(lang, "you")} />
           </label>
           <fieldset className="seg">
+            <legend>{t(lang, "boardSize")}</legend>
+            <button type="button" aria-pressed={!settings.six} onClick={() => update({ six: false, players: Math.min(settings.players, 4) })}>
+              {t(lang, "board4")}
+            </button>
+            <button type="button" aria-pressed={settings.six} onClick={() => update({ six: true, players: 6 })}>
+              {t(lang, "board6")}
+            </button>
+          </fieldset>
+          <fieldset className="seg">
             <legend>{t(lang, "players")}</legend>
-            {[2, 3, 4].map((n) => (
+            {(settings.six ? [2, 3, 4, 5, 6] : [2, 3, 4]).map((n) => (
               <button key={n} type="button" aria-pressed={settings.players === n} onClick={() => update({ players: n })}>
                 {n}
               </button>
@@ -295,7 +305,7 @@ export default function App() {
               <Icon name="target" /> {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
             </span>
           </label>
-          {settings.players === 4 && (
+          {settings.players === 4 && !settings.six && (
             <label className="switch">
               <input type="checkbox" checked={settings.teams} onChange={(e) => update({ teams: e.target.checked })} />
               <span>
@@ -350,13 +360,13 @@ export default function App() {
   }
 
   const startBots = (s: Settings) => {
-    const colors = seatColors(s.players);
+    const colors = seatColors(s.players, s.six);
     const seats: LocalSeat[] = colors.map((color, i) => ({
       color,
       name: i === 0 ? s.name.trim() || t(s.lang, "you") : `${t(s.lang, "bot")} ${i}`,
       bot: i > 0 ? botLevel(s) : null,
     }));
-    setScreen({ name: "local", seats, quick: s.quick, master: s.master, teams: s.teams && s.players === 4, key: Date.now() });
+    setScreen({ name: "local", seats, quick: s.quick, master: s.master, teams: !s.six && s.teams && s.players === 4, six: s.six, key: Date.now() });
   };
   const finishOnboarding = (play: boolean) => {
     setOnboarding(false);
@@ -588,6 +598,7 @@ function LocalGame({
   quick,
   master,
   teams,
+  six,
   settings,
   reduced,
   onGameOver,
@@ -600,6 +611,7 @@ function LocalGame({
   quick: boolean;
   master: boolean;
   teams: boolean;
+  six: boolean;
   settings: Settings;
   reduced: boolean;
   onGameOver(won: boolean): void;
@@ -608,7 +620,7 @@ function LocalGame({
   onAgain(): void;
   onVerify(p: Proof): void;
 }) {
-  const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced, master, teams);
+  const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced, master, teams, six);
   const state = ctl.state!;
   return (
     <GameView
