@@ -1657,30 +1657,25 @@ button.fair-chip {
   margin-top: 18px;
   padding: 26px 18px 18px;
   border-radius: 28px;
-  text-align: center;
+  text-align: left;
   overflow: hidden;
+  min-height: 236px;
+  /* Canva art: the board sits on the right, the dark left half carries the title.
+     The scrim keeps text at AA even where the art is brightest (see styles.test.ts). */
   background:
-    radial-gradient(120% 80% at 50% 0%, rgba(245, 196, 81, 0.22), transparent 60%),
-    linear-gradient(180deg, #1a2350, #111838);
+    linear-gradient(90deg, rgba(11, 16, 38, 0.9) 0%, rgba(11, 16, 38, 0.86) 48%, rgba(11, 16, 38, 0.2) 82%, rgba(11, 16, 38, 0) 100%),
+    url("./assets/lobby-hero.webp") 72% center / cover no-repeat,
+    #0b1026;
   border: 1px solid var(--gold-line);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 24px 60px rgba(0, 0, 0, 0.45);
 }
-.hero-card::before {
-  /* faint board-grid texture */
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(circle at 50% 30%, #000, transparent 75%);
-  pointer-events: none;
+.hero-card > * {
+  max-width: 62%;
 }
-.hero-board img {
-  position: relative;
-  filter: drop-shadow(0 18px 30px rgba(0, 0, 0, 0.5));
-  animation: float 4s ease-in-out infinite;
+@media (max-width: 480px) {
+  .hero-card > * {
+    max-width: 78%;
+  }
 }
 .hero-card h1 {
   position: relative;
@@ -1696,7 +1691,7 @@ button.fair-chip {
   position: relative;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px 14px;
   margin: 0 0 18px;
   color: var(--muted);
