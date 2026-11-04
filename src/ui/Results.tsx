@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { trophyProgress } from "../game/stats";
 import type { Color } from "../engine/rules";
 import { t, type Lang, type StringKey } from "../game/i18n";
 import { Icon } from "./Icon";
@@ -13,6 +14,8 @@ export function Results({
   onAgain,
   onHome,
   onVerify,
+  wins,
+  won,
 }: {
   lang: Lang;
   title: string;
@@ -21,7 +24,19 @@ export function Results({
   onAgain?(): void;
   onHome(): void;
   onVerify(): void;
+  /** Lifetime wins after this game; shows progress to the next trophy. */
+  wins?: number;
+  /** This game was won, so the bar fills from the previous total. */
+  won?: boolean;
 }) {
+  const before = wins !== undefined && won ? trophyProgress(wins - 1) : null;
+  const after = wins !== undefined ? trophyProgress(wins) : null;
+  // Start the bar where it was before this win, then fill it on the next frame.
+  const [fill, setFill] = useState(() => (reduced || !before || before.next !== after?.next ? after?.fraction ?? 0 : before.fraction));
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setFill(after?.fraction ?? 0));
+    return () => cancelAnimationFrame(id);
+  }, [after?.fraction]);
   const pieces = useMemo(
     () =>
       Array.from({ length: 70 }, (_, i) => ({
@@ -67,6 +82,20 @@ export function Results({
           <p className="fourth">
             {t(lang, "place4")}: {order[3].name}
           </p>
+        )}
+        {after && wins !== undefined && (
+          <div className={`trophy-track${won && after.fresh ? " fresh" : ""}`}>
+            <p>
+              {won && after.fresh
+                ? t(lang, "trophyNew", { n: wins })
+                : after.next === null
+                  ? t(lang, "trophyMax")
+                  : t(lang, "trophyNext", { left: after.next - wins, next: after.next })}
+            </p>
+            <div className="bar" aria-hidden="true">
+              <i style={{ width: `${(won && after.fresh ? 1 : fill) * 100}%` }} />
+            </div>
+          </div>
         )}
         <div className="row-btns">
           {onAgain && (

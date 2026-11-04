@@ -29,6 +29,8 @@ export interface GameViewProps {
   banner?: string | null;
   /** Called once when the game ends. `won` is true when a human seat finished first against bots. */
   onGameOver?(won: boolean): void;
+  /** Lifetime wins, for the trophy bar on the results screen. */
+  wins?: number;
 }
 
 export function GameView(props: GameViewProps) {
@@ -329,6 +331,8 @@ export function GameView(props: GameViewProps) {
           onAgain={props.onAgain}
           onHome={props.onExit}
           onVerify={props.onVerify}
+          wins={ctl.bots.some(Boolean) ? props.wins : undefined}
+          won={!ctl.local.every(Boolean) && winners(state).some((i) => ctl.local[i])}
         />
       )}
     </div>
