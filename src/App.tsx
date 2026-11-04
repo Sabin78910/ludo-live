@@ -249,9 +249,6 @@ export default function App() {
       </header>
 
       <section className="hero-card">
-        <div className="hero-board" aria-hidden="true">
-          <img src="./icon.svg" alt="" width="132" height="132" />
-        </div>
         <h1>{t(lang, "appName")}</h1>
         <p className="hero-sub">
           <span>
