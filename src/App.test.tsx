@@ -32,6 +32,14 @@ describe("App", () => {
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
   });
 
+  it("keeps the lobby hero to the title and Play now, without feature chips", () => {
+    const { container } = render(<App />);
+    const hero = container.querySelector(".hero-card") as HTMLElement;
+    expect(hero).toHaveTextContent("Play now");
+    expect(hero).not.toHaveTextContent("Fair dice");
+    expect(hero).not.toHaveTextContent("No ads during matches");
+  });
+
   it("starts a game straight from Play now", async () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "Play now" }));

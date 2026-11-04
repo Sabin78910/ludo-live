@@ -250,15 +250,11 @@ export default function App() {
 
       <section className="hero-card">
         <h1>{t(lang, "appName")}</h1>
-        <p className="hero-sub">
-          <span>
-            <Icon name="shield" size={16} /> {t(lang, "fairChip")}
-          </span>
-          <span>
-            <Icon name="noAds" size={16} /> {t(lang, "noAds")}
-          </span>
-          {liveStreak(stats, dayKey(new Date())) > 0 && <span className="streak"><Icon name="bolt" size={16} /> {t(lang, "streakLine", { n: liveStreak(stats, dayKey(new Date())) })}</span>}
-        </p>
+        {liveStreak(stats, dayKey(new Date())) > 0 && (
+          <p className="hero-sub">
+            <span className="streak"><Icon name="bolt" size={16} /> {t(lang, "streakLine", { n: liveStreak(stats, dayKey(new Date())) })}</span>
+          </p>
+        )}
         <button type="button" className="btn primary big play-now" onClick={() => (tap(), startBots(settings))}>
           {t(lang, "playNow")}
         </button>
