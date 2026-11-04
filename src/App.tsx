@@ -10,6 +10,8 @@ import { play, prefersReducedMotion } from "./game/sound";
 import { forgetFriend, loadFriends, rememberPlayers, saveFriends, type Friend } from "./game/friends";
 import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { chestReady, DICE_SKINS, earnForGame, loadRewards, openChest, saveRewards, SKIN_COST, unlockSkin, type DiceSkin, type Rewards } from "./game/rewards";
+import chestArt from "./assets/chest.webp";
 import { loadRating, pickDifficulty, saveRating, updateRating } from "./game/skill";
 import { needsOnboarding } from "./game/onboarding";
 import { GameView } from "./ui/GameView";
@@ -51,6 +53,23 @@ export default function App() {
       return next;
     });
   const [rating, setRating] = useState(loadRating);
+  const [rewards, setRewardsState] = useState(loadRewards);
+  const [chest, setChest] = useState<null | { amount: number | null }>(null);
+  const setRewards = (fn: (r: Rewards) => Rewards) =>
+    setRewardsState((r) => {
+      const next = fn(r);
+      saveRewards(next);
+      return next;
+    });
+  const today = dayKey(new Date());
+  const pickSkin = (d: DiceSkin) => {
+    if (rewards.owned.includes(d)) return update({ dice: d });
+    const next = unlockSkin(rewards, d);
+    if (next) {
+      setRewards(() => next);
+      update({ dice: d });
+    }
+  };
   const botLevel = (s: Settings): Difficulty => (s.autoLevel ? pickDifficulty(rating) : s.difficulty);
   const onGameOver = (won: boolean, seats?: LocalSeat[]) => {
     const bots = seats?.filter((x) => x.bot) ?? [];
@@ -60,6 +79,7 @@ export default function App() {
         saveRating(next);
         return next;
       });
+    setRewards((r) => earnForGame(r, won));
     setStats((s) => {
       const next = recordGame(s, won, dayKey(new Date()));
       saveStats(next);
@@ -86,7 +106,8 @@ export default function App() {
     root.classList.toggle("marks", settings.marks);
     root.classList.toggle("large-text", settings.largeText);
     root.dataset.board = settings.board;
-  }, [settings.marks, settings.largeText, settings.board]);
+    root.dataset.dice = settings.dice;
+  }, [settings.marks, settings.largeText, settings.board, settings.dice]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -291,6 +312,35 @@ export default function App() {
               </button>
             ))}
           </fieldset>
+          <fieldset className="seg boards">
+            <legend>
+              {t(lang, "diceSkin")}{" "}
+              <small className="spark-count">
+                <Icon name="spark" size={14} /> {t(lang, "sparks", { n: rewards.sparks })}
+              </small>
+            </legend>
+            {DICE_SKINS.map((d) => {
+              const owned = rewards.owned.includes(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={settings.dice === d}
+                  disabled={!owned && rewards.sparks < SKIN_COST[d]}
+                  onClick={() => pickSkin(d)}
+                  title={owned ? undefined : t(lang, "skinCost", { n: SKIN_COST[d] })}
+                >
+                  <span className={`swatch skin-${d}`} aria-hidden="true" />
+                  {t(lang, `skin_${d}`)}
+                  {!owned && (
+                    <small className="skin-cost">
+                      <Icon name="spark" size={12} /> {SKIN_COST[d]}
+                    </small>
+                  )}
+                </button>
+              );
+            })}
+          </fieldset>
           <button type="button" className="btn primary big" onClick={start}>
             {t(lang, "start")}
           </button>
@@ -329,6 +379,14 @@ export default function App() {
             </small>
           </span>
         </div>
+        <button
+          type="button"
+          className={`chip-btn chest-btn${chestReady(rewards, today) ? " ready" : ""}`}
+          onClick={() => setChest({ amount: null })}
+          aria-label={t(lang, "chestReady")}
+        >
+          <Icon name={chestReady(rewards, today) ? "gift" : "spark"} size={16} /> {rewards.sparks}
+        </button>
         <button type="button" className="chip-btn" onClick={() => update({ lang: lang === "en" ? "ne" : "en" })}>
           {t(lang, "language")}
         </button>
@@ -471,6 +529,41 @@ export default function App() {
             <button type="button" className="btn primary big" onClick={() => setSettingsOpen(false)}>
               {t(lang, "close")}
             </button>
+          </div>
+        </div>
+      )}
+      {chest && (
+        <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "chestTitle")} onClick={() => setChest(null)}>
+          <div className="results-card chest-card" onClick={(e) => e.stopPropagation()}>
+            <h2>{t(lang, "chestTitle")}</h2>
+            <img className={`chest-art${chest.amount !== null ? " opened" : ""}`} src={chestArt} alt="" width={150} height={150} />
+            {chest.amount !== null ? (
+              <p className="chest-got" role="status">
+                {t(lang, "chestGot", { n: chest.amount })}
+              </p>
+            ) : !chestReady(rewards, today) ? (
+              <p className="muted">{t(lang, "chestDone")}</p>
+            ) : null}
+            <p className="muted">{t(lang, "chestNote")}</p>
+            {chest.amount === null && chestReady(rewards, today) ? (
+              <button
+                type="button"
+                className="btn primary big"
+                onClick={() => {
+                  const res = openChest(rewards, today);
+                  if (!res) return;
+                  tap();
+                  setRewards(() => res.rewards);
+                  setChest({ amount: res.amount });
+                }}
+              >
+                {t(lang, "chestOpen")}
+              </button>
+            ) : (
+              <button type="button" className="btn primary" onClick={() => setChest(null)}>
+                {t(lang, "close")}
+              </button>
+            )}
           </div>
         </div>
       )}

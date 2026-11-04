@@ -1,5 +1,6 @@
 // Player preferences saved in localStorage. Reads are defensive: storage can be missing or corrupt.
 import type { Difficulty } from "../engine/bot";
+import { DICE_SKINS, type DiceSkin } from "./rewards";
 import { randomHex } from "../engine/fair";
 import type { Lang } from "./i18n";
 
@@ -26,6 +27,8 @@ export interface Settings {
   onboarded: boolean;
   /** Board finish. Cosmetic only, never affects play. */
   board: BoardTheme;
+  /** Dice skin, unlocked with sparks. Cosmetic only. */
+  dice: DiceSkin;
   /** Larger type across the app for low vision and older players. */
   largeText: boolean;
   /** This device's contribution to the fair-dice seeds. */
@@ -49,6 +52,7 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     teams: false,
     onboarded: false,
     board: "classic",
+    dice: "classic",
     largeText: false,
     clientSeed: randomHex(8),
   };
@@ -76,6 +80,7 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       teams: typeof o.teams === "boolean" ? o.teams : fallback.teams,
       onboarded: typeof o.onboarded === "boolean" ? o.onboarded : fallback.onboarded,
       board: BOARD_THEMES.includes(o.board as BoardTheme) ? (o.board as BoardTheme) : fallback.board,
+      dice: DICE_SKINS.includes(o.dice as DiceSkin) ? (o.dice as DiceSkin) : fallback.dice,
       largeText: typeof o.largeText === "boolean" ? o.largeText : fallback.largeText,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };
