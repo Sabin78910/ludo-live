@@ -15,6 +15,7 @@ import { GameView } from "./ui/GameView";
 import { Onboarding } from "./ui/Onboarding";
 import { Icon } from "./ui/Icon";
 import { OnlineRoomScreen } from "./ui/Online";
+import { SnakesGame, type SnakesSeat } from "./ui/SnakesGame";
 import { Verify, type Proof } from "./ui/Verify";
 
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -23,6 +24,8 @@ type Screen =
   | { name: "home" }
   | { name: "setup"; mode: "bots" | "local" }
   | { name: "local"; seats: LocalSeat[]; quick: boolean; master: boolean; teams: boolean; key: number }
+  | { name: "snakesSetup" }
+  | { name: "snakes"; seats: SnakesSeat[]; key: number }
   | { name: "online"; code: string; create: boolean }
   | { name: "verify"; proof: Proof; back: Screen };
 
@@ -35,6 +38,7 @@ export default function App() {
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
   const [rules, setRules] = useState(false);
+  const [slBots, setSlBots] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboarding, setOnboarding] = useState(() => needsOnboarding(settings.onboarded, screen.name === "online"));
   const [stats, setStats] = useState(loadStats);
@@ -106,6 +110,71 @@ export default function App() {
         onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
       />
+    );
+  }
+
+  if (screen.name === "snakes") {
+    return (
+      <SnakesGame
+        key={screen.key}
+        seats={screen.seats}
+        clientSeed={settings.clientSeed}
+        lang={lang}
+        sound={settings.sound}
+        haptics={settings.haptics}
+        reduced={reduced}
+        onGameOver={onGameOver}
+        onExit={() => setScreen({ name: "home" })}
+        onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
+        onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
+      />
+    );
+  }
+
+  if (screen.name === "snakesSetup") {
+    const start = () => {
+      tap();
+      const seats: SnakesSeat[] = seatColors(settings.players).map((color, i) => ({
+        color,
+        name: i === 0 ? myName : slBots ? `${t(lang, "computer")} ${i}` : `${t(lang, "player")} ${i + 1}`,
+        bot: slBots && i > 0,
+      }));
+      setScreen({ name: "snakes", seats, key: Date.now() });
+    };
+    return (
+      <main className="screen setup">
+        <button type="button" className="btn ghost back" onClick={() => setScreen({ name: "home" })}>
+          <Icon name="back" size={18} /> {t(lang, "back")}
+        </button>
+        <h1>{t(lang, "snakes")}</h1>
+        <section className="glass form">
+          <label className="field">
+            <span>{t(lang, "yourName")}</span>
+            <input value={settings.name} maxLength={16} onChange={(e) => update({ name: e.target.value })} placeholder={t(lang, "you")} />
+          </label>
+          <fieldset className="seg">
+            <legend>{t(lang, "opponents")}</legend>
+            <button type="button" aria-pressed={slBots} onClick={() => setSlBots(true)}>
+              {t(lang, "computer")}
+            </button>
+            <button type="button" aria-pressed={!slBots} onClick={() => setSlBots(false)}>
+              {t(lang, "friends")}
+            </button>
+          </fieldset>
+          <fieldset className="seg">
+            <legend>{t(lang, "players")}</legend>
+            {[2, 3, 4].map((n) => (
+              <button key={n} type="button" aria-pressed={settings.players === n} onClick={() => update({ players: n })}>
+                {n}
+              </button>
+            ))}
+          </fieldset>
+          <p className="muted small">{t(lang, "exactFinish")}</p>
+          <button type="button" className="btn primary big" onClick={start}>
+            {t(lang, "start")}
+          </button>
+        </section>
+      </main>
     );
   }
 
@@ -270,6 +339,11 @@ export default function App() {
           <span className="tile-icon"><Icon name="phone" size={30} /></span>
           <strong>{t(lang, "passPlay")}</strong>
           <small>{t(lang, "passPlaySub")}</small>
+        </button>
+        <button type="button" className="tile tile-wide tl-gold snakes-tile" onClick={() => (tap(), setScreen({ name: "snakesSetup" }))}>
+          <span className="tile-icon"><Icon name="ladder" size={30} /></span>
+          <strong>{t(lang, "snakes")}</strong>
+          <small>{t(lang, "snakesSub")}</small>
         </button>
         <div className={`tile tile-wide tl-blue online${WS_URL ? "" : " soon"}`}>
           <span className="tile-icon"><Icon name="globe" size={30} /></span>

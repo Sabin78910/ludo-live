@@ -86,4 +86,15 @@ describe("first-run onboarding", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Play vs bots/ })).toBeInTheDocument();
   });
+
+  it("opens Snakes & Ladders from the lobby and starts a game vs the computer", async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /Snakes & Ladders/ }));
+    expect(screen.getByRole("button", { name: "Computer" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByRole("button", { name: "2" }));
+    await userEvent.click(screen.getByRole("button", { name: "Start game" }));
+    expect(screen.getByRole("img", { name: "Snakes & Ladders" })).toBeInTheDocument();
+    expect(screen.getAllByRole("listitem")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Tap the dice to roll" })).toBeInTheDocument();
+  });
 });
