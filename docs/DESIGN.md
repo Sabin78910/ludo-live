@@ -66,5 +66,8 @@ Ten criteria, 10 points each. "Before" is main at the start of this pass (3 Nov 
 | 10 | Integrity: stylesheet loads whole (a merge had left three rules open), tested | 0 | 10 |
 | | **Total** | **61** | **100** |
 
+Polish pass (4 Nov): setup options and settings now share one pill switch (the setup used raw browser
+checkboxes at two sizes), and the active seat keeps the dice clear of the name and pips.
+
 The score is against this rubric, checked by tests and screenshots at 400px wide. It is not a store rating:
 real player feedback after release is the next measure.

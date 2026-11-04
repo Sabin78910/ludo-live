@@ -41,4 +41,9 @@ describe("lobby hero art", () => {
       expect(ratio).toBeGreaterThanOrEqual(4.5);
     }
   });
+  it("draws every on/off option as one switch with a visible focus ring", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/index.css"), "utf8");
+    expect(css).toMatch(/\.switch input,\s*\.setting input \{[^}]*appearance: none/);
+    expect(css).toMatch(/\.switch input:focus-visible,\s*\.setting input:focus-visible \{[^}]*outline/);
+  });
 });
