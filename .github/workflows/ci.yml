@@ -28,6 +28,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Startup budget (gzipped JS + CSS on first paint)
+        run: node scripts/check-budget.mjs 125
       - name: Bundle the Worker (dry run)
         run: cd worker && npm ci && npx wrangler deploy --dry-run --outdir /tmp/worker-build
       - run: npm audit --audit-level=high --omit=dev

@@ -2,9 +2,11 @@
 // No DOM, no timers, no randomness: dice values are passed in, so the server stays authoritative and every
 // roll can come from the provably fair dealer in fair.ts.
 
-export type Color = "red" | "green" | "yellow" | "blue";
+/** Colours of the classic 4-player board. */
+export type ClassicColor = "red" | "green" | "yellow" | "blue";
+export type Color = ClassicColor | "purple" | "orange";
 /** Clockwise seat order around the board. */
-export const COLORS: readonly Color[] = ["red", "green", "yellow", "blue"];
+export const COLORS: readonly ClassicColor[] = ["red", "green", "yellow", "blue"];
 
 export const TRACK_LEN = 52;
 /** Last progress value on the shared track (the cell just before a player's home column). */
@@ -15,10 +17,42 @@ export const BASE = -1;
 export const TOKENS_PER_PLAYER = 4;
 
 /** Index on the 52-cell track where each colour enters (also a safe cell). */
-export const START_OFFSET: Record<Color, number> = { red: 0, green: 13, yellow: 26, blue: 39 };
+export const START_OFFSET: Record<Color, number> = { red: 0, green: 13, yellow: 26, blue: 39, purple: 0, orange: 0 };
 /** Star cells: 8 steps after each start. Start cells and stars are safe from capture. */
 export const STAR_INDICES: readonly number[] = [8, 21, 34, 47];
 export const SAFE_INDICES: ReadonlySet<number> = new Set([0, 13, 26, 39, ...STAR_INDICES]);
+
+/** Clockwise seat order on the 6-player hexagon board. */
+export const SIX_COLORS: readonly Color[] = ["red", "orange", "yellow", "green", "blue", "purple"];
+
+/**
+ * Track geometry. The classic board has a 52-square loop; the 6-player hexagon has six arms of 13 squares
+ * (78). Progress always counts from a player's start: 0..lastTrack on the loop, then 5 home-lane squares,
+ * then `finish` in the centre.
+ */
+export interface Geo {
+  trackLen: number;
+  lastTrack: number;
+  finish: number;
+  start: Record<Color, number>;
+  stars: readonly number[];
+  safe: ReadonlySet<number>;
+}
+
+export const CLASSIC_GEO: Geo = { trackLen: TRACK_LEN, lastTrack: LAST_TRACK, finish: FINISH, start: START_OFFSET, stars: STAR_INDICES, safe: SAFE_INDICES };
+
+const SIX_STARTS = SIX_COLORS.map((_, i) => 13 * i);
+const SIX_STARS = SIX_STARTS.map((s) => s + 8);
+export const SIX_GEO: Geo = {
+  trackLen: 78,
+  lastTrack: 76,
+  finish: 82,
+  start: Object.fromEntries(SIX_COLORS.map((c, i) => [c, SIX_STARTS[i]])) as Record<Color, number>,
+  stars: SIX_STARS,
+  safe: new Set([...SIX_STARTS, ...SIX_STARS]),
+};
+
+export const geoOf = (s: { six?: boolean }): Geo => (s.six ? SIX_GEO : CLASSIC_GEO);
 
 export type Mode = "classic" | "quick";
 
@@ -54,6 +88,8 @@ export interface GameState {
   captured?: boolean[];
   /** 2v2 teams: players 0 and 2 against 1 and 3 (opposite corners). */
   teams?: boolean;
+  /** 6-player hexagon board (78-square track). */
+  six?: boolean;
 }
 
 export type GameEvent =
@@ -80,12 +116,18 @@ export interface GameOptions {
   master?: boolean;
   /** 2v2 teams (needs exactly 4 players): partners sit opposite, never capture each other, win together. */
   teams?: boolean;
+  /** 6-player hexagon board: 2 to 6 players. */
+  six?: boolean;
 }
 
 export class RuleError extends Error {}
 
 export function createGame(players: Player[], opts: GameOptions = {}): GameState {
-  if (players.length < 2 || players.length > 4) throw new RuleError("Ludo needs 2 to 4 players");
+  const max = opts.six ? 6 : 4;
+  if (players.length < 2 || players.length > max) throw new RuleError(`Ludo needs 2 to ${max} players`);
+  if (opts.six && opts.teams) throw new RuleError("Teams are for the 4-player board");
+  const allowed = opts.six ? SIX_COLORS : COLORS;
+  if (players.some((p) => !allowed.includes(p.color))) throw new RuleError("That colour is not on this board");
   const colors = new Set(players.map((p) => p.color));
   if (colors.size !== players.length) throw new RuleError("Each player needs a different colour");
   if (opts.teams && players.length !== 4) throw new RuleError("Teams need 4 players");
@@ -107,11 +149,17 @@ export function createGame(players: Player[], opts: GameOptions = {}): GameState
     master: opts.master === true,
     captured: players.map(() => false),
     teams: opts.teams === true,
+    ...(opts.six ? { six: true } : {}),
   };
 }
 
 /** Seat colours for a table of n players: 2 players sit opposite each other. */
-export function seatColors(n: number): Color[] {
+export function seatColors(n: number, six = false): Color[] {
+  if (six) {
+    const seats: Record<number, number[]> = { 2: [0, 3], 3: [0, 2, 4], 4: [0, 1, 3, 4], 5: [0, 1, 2, 3, 4], 6: [0, 1, 2, 3, 4, 5] };
+    if (!seats[n]) throw new RuleError("Ludo needs 2 to 6 players");
+    return seats[n].map((i) => SIX_COLORS[i]);
+  }
   if (n === 2) return ["red", "yellow"];
   if (n === 3) return ["red", "green", "yellow"];
   if (n === 4) return [...COLORS];
@@ -119,22 +167,22 @@ export function seatColors(n: number): Color[] {
 }
 
 /** Absolute track index (0..51) of a token, or null when it is in base, the home column or finished. */
-export function trackIndex(color: Color, progress: number): number | null {
-  if (progress < 0 || progress > LAST_TRACK) return null;
-  return (START_OFFSET[color] + progress) % TRACK_LEN;
+export function trackIndex(color: Color, progress: number, g: Geo = CLASSIC_GEO): number | null {
+  if (progress < 0 || progress > g.lastTrack) return null;
+  return (g.start[color] + progress) % g.trackLen;
 }
 
-export function isSafeIndex(index: number): boolean {
-  return SAFE_INDICES.has(index);
+export function isSafeIndex(index: number, g: Geo = CLASSIC_GEO): boolean {
+  return g.safe.has(index);
 }
 
 /** Where a token at `progress` lands with `roll`, or null if it cannot move. */
-export function target(progress: number, roll: number): number | null {
+export function target(progress: number, roll: number, g: Geo = CLASSIC_GEO): number | null {
   if (roll < 1 || roll > 6) return null;
   if (progress === BASE) return roll === 6 ? 0 : null;
-  if (progress >= FINISH) return null;
+  if (progress >= g.finish) return null;
   const to = progress + roll;
-  return to > FINISH ? null : to; // exact roll needed to finish
+  return to > g.finish ? null : to; // exact roll needed to finish
 }
 
 /** True when a and b play on the same side (the same player, or partners in a team game). */
@@ -156,8 +204,9 @@ export function homeLocked(state: GameState, player: number): boolean {
 
 /** Like `target`, but applies the Master rule: a locked token cannot step past the last track cell. */
 export function targetFor(state: GameState, player: number, progress: number, roll: number): number | null {
-  const to = target(progress, roll);
-  if (to !== null && to > LAST_TRACK && homeLocked(state, player)) return null;
+  const g = geoOf(state);
+  const to = target(progress, roll, g);
+  if (to !== null && to > g.lastTrack && homeLocked(state, player)) return null;
   return to;
 }
 
@@ -281,12 +330,13 @@ export function applyMove(state: GameState, token: number): Step {
 
   let captured = false;
   const color = s.players[me].color;
-  const cell = trackIndex(color, to);
-  if (cell !== null && !isSafeIndex(cell)) {
+  const g = geoOf(s);
+  const cell = trackIndex(color, to, g);
+  if (cell !== null && !isSafeIndex(cell, g)) {
     s.players.forEach((p, other) => {
       if (sameSide(s, me, other)) return;
       s.tokens[other].forEach((op, ti) => {
-        if (trackIndex(p.color, op) === cell) {
+        if (trackIndex(p.color, op, g) === cell) {
           s.tokens[other][ti] = BASE;
           captured = true;
           events.push({ type: "capture", player: me, victim: other, token: ti, cell });
@@ -297,7 +347,7 @@ export function applyMove(state: GameState, token: number): Step {
 
   if (captured) s.captured = s.players.map((_, i) => i === me || s.captured?.[i] === true);
 
-  const reachedHome = to === FINISH;
+  const reachedHome = to === g.finish;
   if (reachedHome) events.push({ type: "home", player: me, token });
 
   if (reachedHome && s.mode === "quick") {
@@ -306,7 +356,7 @@ export function applyMove(state: GameState, token: number): Step {
     endGame(s, events);
     return { state: s, events };
   }
-  if (s.tokens[me].every((p) => p === FINISH)) {
+  if (s.tokens[me].every((p) => p === g.finish)) {
     s.finished.push(me);
     events.push({ type: "finish", player: me, place: s.finished.length });
     const partnerDone = s.teams === true && s.finished.includes((me + 2) % 4);

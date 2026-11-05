@@ -1,15 +1,19 @@
 // Cloudflare Worker entry: routes wss://<worker>/room/<CODE> to one Durable Object per room.
 // The Durable Object uses the WebSocket Hibernation API, keeps RoomData in storage and drives timers with alarms.
 import { normalizeRoomCode, parseClientMsg, type ServerMsg } from "../../src/engine/protocol";
+import { MAX_SOCKETS_PER_ROOM, newBucket, spend, type Bucket } from "./limits";
 import { RoomCore, type RoomData } from "./room";
 
 export interface Env {
   ROOMS: DurableObjectNamespace;
+  /** Cloudflare Rate Limiting binding (wrangler.toml). Optional so local dev and tests run without it. */
+  JOIN_LIMIT?: { limit(opts: { key: string }): Promise<{ success: boolean }> };
 }
 
 interface Attachment {
   code: string;
   token: string | null;
+  bucket?: Bucket;
 }
 
 const json = (body: unknown, status = 200) =>
@@ -26,6 +30,9 @@ export default {
     const code = normalizeRoomCode(match?.[1]);
     if (!code) return json({ error: "not found" }, 404);
     if (req.headers.get("Upgrade")?.toLowerCase() !== "websocket") return json({ error: "expected a WebSocket" }, 426);
+    // Per-IP connect limit at the edge, before any Durable Object wakes up.
+    const ip = req.headers.get("cf-connecting-ip") ?? "local";
+    if (env.JOIN_LIMIT && !(await env.JOIN_LIMIT.limit({ key: ip })).success) return json({ error: "too many requests" }, 429);
     const stub = env.ROOMS.get(env.ROOMS.idFromName(code));
     return stub.fetch(req);
   },
@@ -47,18 +54,25 @@ export class LudoRoom implements DurableObject {
   async fetch(req: Request): Promise<Response> {
     const code = normalizeRoomCode(new URL(req.url).pathname.slice(1).split("/").pop());
     if (!code) return new Response("bad room", { status: 400 });
+    if (this.state.getWebSockets().length >= MAX_SOCKETS_PER_ROOM) return new Response("room busy", { status: 503 });
     const pair = new WebSocketPair();
     const [client, server] = [pair[0], pair[1]];
     this.state.acceptWebSocket(server);
-    server.serializeAttachment({ code, token: null } satisfies Attachment);
+    server.serializeAttachment({ code, token: null, bucket: newBucket(Date.now()) } satisfies Attachment);
     return new Response(null, { status: 101, webSocket: client });
   }
 
   async webSocketMessage(ws: WebSocket, message: string | ArrayBuffer): Promise<void> {
-    const msg = parseClientMsg(typeof message === "string" ? message : null);
-    if (!msg) return send(ws, { t: "error", code: "bad", message: "Bad message" });
     const att = ws.deserializeAttachment() as Attachment;
     const now = Date.now();
+    // Rate limit before parsing or touching storage, so a flooding client costs almost nothing.
+    const bucket = att.bucket ?? newBucket(now);
+    const verdict = spend(bucket, now);
+    ws.serializeAttachment({ ...att, bucket } satisfies Attachment);
+    if (verdict === "close") return ws.close(4029, "rate limited");
+    if (verdict === "drop") return;
+    const msg = parseClientMsg(typeof message === "string" ? message : null);
+    if (!msg) return send(ws, { t: "error", code: "bad", message: "Bad message" });
     let room = await this.load();
     // Self-heal: any message (including the 10s keep-alive ping) also runs overdue timers,
     // so a late or lost alarm can never freeze a game.
@@ -84,11 +98,11 @@ export class LudoRoom implements DurableObject {
       // A newer connection replaces an older one for the same player (e.g. after a network switch).
       for (const other of this.state.getWebSockets()) {
         if (other !== ws && (other.deserializeAttachment() as Attachment).token === res.token) {
-          other.serializeAttachment({ code: att.code, token: null } satisfies Attachment);
+          other.serializeAttachment({ code: att.code, token: null, bucket: newBucket(now) } satisfies Attachment);
           other.close(4000, "replaced");
         }
       }
-      ws.serializeAttachment({ code: att.code, token: res.token } satisfies Attachment);
+      ws.serializeAttachment({ code: att.code, token: res.token, bucket } satisfies Attachment);
       send(ws, { t: "welcome", seat: res.seat, token: res.token, code: room.data.code });
       return this.commit(room, now);
     }
@@ -161,11 +175,18 @@ export class LudoRoom implements DurableObject {
     const next = room.nextAlarm();
     if (next !== null) await this.state.storage.setAlarm(Math.max(next, now + 50));
     else await this.state.storage.deleteAlarm();
+    // Build each seat's JSON once, even if a player has several tabs open.
+    const cache = new Map<number, string>();
     for (const ws of this.state.getWebSockets()) {
       const att = ws.deserializeAttachment() as Attachment;
       if (!att.token) continue;
       const seat = room.seatOfToken(att.token);
-      send(ws, { t: "state", room: room.view(seat >= 0 ? seat : null, now) });
+      let body = cache.get(seat);
+      if (body === undefined) {
+        body = JSON.stringify({ t: "state", room: room.view(seat >= 0 ? seat : null, now) } satisfies ServerMsg);
+        cache.set(seat, body);
+      }
+      sendRaw(ws, body);
     }
   }
 
@@ -177,8 +198,12 @@ export class LudoRoom implements DurableObject {
 }
 
 function send(ws: WebSocket, msg: ServerMsg): void {
+  sendRaw(ws, JSON.stringify(msg));
+}
+
+function sendRaw(ws: WebSocket, body: string): void {
   try {
-    ws.send(JSON.stringify(msg));
+    ws.send(body);
   } catch {
     // The socket closed in the meantime; the close handler cleans up.
   }

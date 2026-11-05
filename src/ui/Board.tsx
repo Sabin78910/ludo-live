@@ -1,6 +1,6 @@
 import { memo } from "react";
 import { BASE_ORIGIN, GRID, HOME_COLUMN, TRACK, tokenPosition } from "../engine/board";
-import { COLORS, START_OFFSET, STAR_INDICES, type Color } from "../engine/rules";
+import { COLORS, START_OFFSET, STAR_INDICES, type ClassicColor, type Color } from "../engine/rules";
 
 export interface Burst {
   id: number;
@@ -9,7 +9,7 @@ export interface Burst {
   color: Color;
 }
 
-export const ROTATION: Record<Color, number> = { blue: 0, red: -90, green: 180, yellow: 90 };
+export const ROTATION: Record<ClassicColor, number> = { blue: 0, red: -90, green: 180, yellow: 90 };
 
 const pct = (v: number) => `${(v / GRID) * 100}%`;
 
@@ -76,7 +76,7 @@ const BoardArt = memo(function BoardArt() {
   );
 });
 
-function startArrow(c: Color): number {
+function startArrow(c: ClassicColor): number {
   return { red: 0, green: 90, yellow: 180, blue: 270 }[c];
 }
 

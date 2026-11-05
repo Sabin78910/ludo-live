@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { trophyProgress } from "../game/stats";
 import type { Color } from "../engine/rules";
 import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
 import type { DiceLuck } from "../game/luck";
@@ -15,6 +16,9 @@ export function Results({
   onHome,
   onVerify,
   luck = [],
+  wins,
+  won,
+  sparks,
 }: {
   lang: Lang;
   title: string;
@@ -24,7 +28,34 @@ export function Results({
   onHome(): void;
   onVerify(): void;
   luck?: (DiceLuck & { name: string; color: Color })[];
+  /** Lifetime wins after this game; shows progress to the next trophy. */
+  wins?: number;
+  /** This game was won, so the bar fills from the previous total. */
+  won?: boolean;
+  /** Sparks earned by this game; counts up so the reward is seen landing. */
+  sparks?: number;
 }) {
+  const [shown, setShown] = useState(reduced ? (sparks ?? 0) : 0);
+  useEffect(() => {
+    if (!sparks || reduced) return;
+    const start = performance.now();
+    let id = 0;
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start) / 900);
+      setShown(Math.round(sparks * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) id = requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [sparks, reduced]);
+  const before = wins !== undefined && won ? trophyProgress(wins - 1) : null;
+  const after = wins !== undefined ? trophyProgress(wins) : null;
+  // Start the bar where it was before this win, then fill it on the next frame.
+  const [fill, setFill] = useState(() => (reduced || !before || before.next !== after?.next ? after?.fraction ?? 0 : before.fraction));
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setFill(after?.fraction ?? 0));
+    return () => cancelAnimationFrame(id);
+  }, [after?.fraction]);
   const pieces = useMemo(
     () =>
       Array.from({ length: 70 }, (_, i) => ({
@@ -98,6 +129,25 @@ export function Results({
               })}
             </ul>
           </section>
+        )}
+        {sparks ? (
+          <p className="sparks-earned" role="status" aria-label={t(lang, "sparksEarned", { n: sparks })}>
+            <Icon name="spark" size={20} /> +{shown}
+          </p>
+        ) : null}
+        {after && wins !== undefined && (
+          <div className={`trophy-track${won && after.fresh ? " fresh" : ""}`}>
+            <p>
+              {won && after.fresh
+                ? t(lang, "trophyNew", { n: wins })
+                : after.next === null
+                  ? t(lang, "trophyMax")
+                  : t(lang, "trophyNext", { left: after.next - wins, next: after.next })}
+            </p>
+            <div className="bar" aria-hidden="true">
+              <i style={{ width: `${(won && after.fresh ? 1 : fill) * 100}%` }} />
+            </div>
+          </div>
         )}
         <div className="row-btns">
           {onAgain && (

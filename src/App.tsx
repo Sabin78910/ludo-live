@@ -4,25 +4,33 @@ import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
+import { AccountRow } from "./ui/Account";
 import { BOARD_THEMES, loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
 import { forgetFriend, loadFriends, rememberPlayers, saveFriends, type Friend } from "./game/friends";
 import { dayKey, liveStreak, loadStats, recordGame, saveStats } from "./game/stats";
 import { useLocalGame, type LocalSeat } from "./game/useLocalGame";
+import { chestReady, DICE_SKINS, earnForGame, loadRewards, openChest, saveRewards, SKIN_COST, unlockSkin, type DiceSkin, type Rewards } from "./game/rewards";
+import chestArt from "./assets/chest.webp";
+import { loadRating, pickDifficulty, saveRating, updateRating } from "./game/skill";
 import { needsOnboarding } from "./game/onboarding";
 import { GameView } from "./ui/GameView";
 import { Onboarding } from "./ui/Onboarding";
 import { Icon } from "./ui/Icon";
 import { OnlineRoomScreen } from "./ui/Online";
+import { SnakesGame, type SnakesSeat } from "./ui/SnakesGame";
 import { Verify, type Proof } from "./ui/Verify";
+import { onlineState, useOnline } from "./game/network";
 
 const WS_URL = import.meta.env.VITE_WS_URL;
 
 type Screen =
   | { name: "home" }
   | { name: "setup"; mode: "bots" | "local" }
-  | { name: "local"; seats: LocalSeat[]; quick: boolean; master: boolean; teams: boolean; key: number }
+  | { name: "local"; seats: LocalSeat[]; quick: boolean; master: boolean; teams: boolean; six?: boolean; key: number }
+  | { name: "snakesSetup" }
+  | { name: "snakes"; seats: SnakesSeat[]; key: number }
   | { name: "online"; code: string; create: boolean }
   | { name: "verify"; proof: Proof; back: Screen };
 
@@ -34,7 +42,9 @@ export default function App() {
     return code && WS_URL ? { name: "online", code, create: false } : { name: "home" };
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
+  const onlineTile = onlineState(WS_URL, useOnline());
   const [rules, setRules] = useState(false);
+  const [slBots, setSlBots] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [onboarding, setOnboarding] = useState(() => needsOnboarding(settings.onboarded, screen.name === "online"));
   const [stats, setStats] = useState(loadStats);
@@ -45,12 +55,40 @@ export default function App() {
       saveFriends(next);
       return next;
     });
-  const onGameOver = (won: boolean) =>
+  const [rating, setRating] = useState(loadRating);
+  const [rewards, setRewardsState] = useState(loadRewards);
+  const [chest, setChest] = useState<null | { amount: number | null }>(null);
+  const setRewards = (fn: (r: Rewards) => Rewards) =>
+    setRewardsState((r) => {
+      const next = fn(r);
+      saveRewards(next);
+      return next;
+    });
+  const today = dayKey(new Date());
+  const pickSkin = (d: DiceSkin) => {
+    if (rewards.owned.includes(d)) return update({ dice: d });
+    const next = unlockSkin(rewards, d);
+    if (next) {
+      setRewards(() => next);
+      update({ dice: d });
+    }
+  };
+  const botLevel = (s: Settings): Difficulty => (s.autoLevel ? pickDifficulty(rating) : s.difficulty);
+  const onGameOver = (won: boolean, seats?: LocalSeat[]) => {
+    const bots = seats?.filter((x) => x.bot) ?? [];
+    if (bots.length && bots[0].bot)
+      setRating((r) => {
+        const next = updateRating(r, bots[0].bot!, won, bots.length);
+        saveRating(next);
+        return next;
+      });
+    setRewards((r) => earnForGame(r, won));
     setStats((s) => {
       const next = recordGame(s, won, dayKey(new Date()));
       saveStats(next);
       return next;
     });
+  };
   const { canInstall, install } = useInstallPrompt();
   const lang = settings.lang;
 
@@ -71,7 +109,8 @@ export default function App() {
     root.classList.toggle("marks", settings.marks);
     root.classList.toggle("large-text", settings.largeText);
     root.dataset.board = settings.board;
-  }, [settings.marks, settings.largeText, settings.board]);
+    root.dataset.dice = settings.dice;
+  }, [settings.marks, settings.largeText, settings.board, settings.dice]);
 
   useEffect(() => {
     const mq = window.matchMedia?.("(prefers-reduced-motion: reduce)");
@@ -99,13 +138,81 @@ export default function App() {
         quick={screen.quick}
         master={screen.master}
         teams={screen.teams}
+        six={screen.six === true}
         settings={settings}
         reduced={reduced}
-        onGameOver={onGameOver}
+        onGameOver={(won) => onGameOver(won, screen.seats)}
+        wins={stats.won}
         onExit={() => setScreen({ name: "home" })}
         onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
         onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
       />
+    );
+  }
+
+  if (screen.name === "snakes") {
+    return (
+      <SnakesGame
+        key={screen.key}
+        seats={screen.seats}
+        clientSeed={settings.clientSeed}
+        lang={lang}
+        sound={settings.sound}
+        haptics={settings.haptics}
+        reduced={reduced}
+        onGameOver={onGameOver}
+        wins={stats.won}
+        onExit={() => setScreen({ name: "home" })}
+        onAgain={() => setScreen({ ...screen, key: screen.key + 1 })}
+        onVerify={(proof) => setScreen({ name: "verify", proof, back: { name: "home" } })}
+      />
+    );
+  }
+
+  if (screen.name === "snakesSetup") {
+    const start = () => {
+      tap();
+      const seats: SnakesSeat[] = seatColors(Math.min(settings.players, 4)).map((color, i) => ({
+        color,
+        name: i === 0 ? myName : slBots ? `${t(lang, "computer")} ${i}` : `${t(lang, "player")} ${i + 1}`,
+        bot: slBots && i > 0,
+      }));
+      setScreen({ name: "snakes", seats, key: Date.now() });
+    };
+    return (
+      <main className="screen setup">
+        <button type="button" className="btn ghost back" onClick={() => setScreen({ name: "home" })}>
+          <Icon name="back" size={18} /> {t(lang, "back")}
+        </button>
+        <h1>{t(lang, "snakes")}</h1>
+        <section className="glass form">
+          <label className="field">
+            <span>{t(lang, "yourName")}</span>
+            <input value={settings.name} maxLength={16} onChange={(e) => update({ name: e.target.value })} placeholder={t(lang, "you")} />
+          </label>
+          <fieldset className="seg">
+            <legend>{t(lang, "opponents")}</legend>
+            <button type="button" aria-pressed={slBots} onClick={() => setSlBots(true)}>
+              {t(lang, "computer")}
+            </button>
+            <button type="button" aria-pressed={!slBots} onClick={() => setSlBots(false)}>
+              {t(lang, "friends")}
+            </button>
+          </fieldset>
+          <fieldset className="seg">
+            <legend>{t(lang, "players")}</legend>
+            {[2, 3, 4].map((n) => (
+              <button key={n} type="button" aria-pressed={settings.players === n} onClick={() => update({ players: n })}>
+                {n}
+              </button>
+            ))}
+          </fieldset>
+          <p className="muted small">{t(lang, "exactFinish")}</p>
+          <button type="button" className="btn primary big" onClick={start}>
+            {t(lang, "start")}
+          </button>
+        </section>
+      </main>
     );
   }
 
@@ -135,13 +242,13 @@ export default function App() {
     const bots = screen.mode === "bots";
     const start = () => {
       tap();
-      const colors = seatColors(settings.players);
+      const colors = seatColors(settings.players, settings.six);
       const seats: LocalSeat[] = colors.map((color, i) => ({
         color,
         name: bots ? (i === 0 ? myName : `${t(lang, "bot")} ${i}`) : i === 0 && settings.name ? settings.name : `${t(lang, "player")} ${i + 1}`,
-        bot: bots && i > 0 ? settings.difficulty : null,
+        bot: bots && i > 0 ? botLevel(settings) : null,
       }));
-      setScreen({ name: "local", seats, quick: settings.quick, master: settings.master, teams: settings.teams && settings.players === 4, key: Date.now() });
+      setScreen({ name: "local", seats, quick: settings.quick, master: settings.master, teams: !settings.six && settings.teams && settings.players === 4, six: settings.six, key: Date.now() });
     };
     return (
       <main className="screen setup">
@@ -155,8 +262,17 @@ export default function App() {
             <input value={settings.name} maxLength={16} onChange={(e) => update({ name: e.target.value })} placeholder={t(lang, "you")} />
           </label>
           <fieldset className="seg">
+            <legend>{t(lang, "boardSize")}</legend>
+            <button type="button" aria-pressed={!settings.six} onClick={() => update({ six: false, players: Math.min(settings.players, 4) })}>
+              {t(lang, "board4")}
+            </button>
+            <button type="button" aria-pressed={settings.six} onClick={() => update({ six: true, players: 6 })}>
+              {t(lang, "board6")}
+            </button>
+          </fieldset>
+          <fieldset className="seg">
             <legend>{t(lang, "players")}</legend>
-            {[2, 3, 4].map((n) => (
+            {(settings.six ? [2, 3, 4, 5, 6] : [2, 3, 4]).map((n) => (
               <button key={n} type="button" aria-pressed={settings.players === n} onClick={() => update({ players: n })}>
                 {n}
               </button>
@@ -166,11 +282,18 @@ export default function App() {
             <fieldset className="seg">
               <legend>{t(lang, "difficulty")}</legend>
               {DIFFICULTIES.map((d: Difficulty) => (
-                <button key={d} type="button" aria-pressed={settings.difficulty === d} onClick={() => update({ difficulty: d })}>
+                <button key={d} type="button" aria-pressed={!settings.autoLevel && settings.difficulty === d} onClick={() => update({ difficulty: d, autoLevel: false })}>
                   {t(lang, d as StringKey)}
                 </button>
               ))}
-              <small className="seg-note">{t(lang, `${settings.difficulty}Sub`)}</small>
+              <button type="button" aria-pressed={settings.autoLevel} onClick={() => update({ autoLevel: true })}>
+                {t(lang, "auto")}
+              </button>
+              <small className="seg-note">
+                {settings.autoLevel
+                  ? t(lang, "autoSub", { level: t(lang, pickDifficulty(rating)) })
+                  : t(lang, `${settings.difficulty}Sub`)}
+              </small>
             </fieldset>
           )}
           <label className="switch">
@@ -185,7 +308,7 @@ export default function App() {
               <Icon name="target" /> {t(lang, "masterRule")} <small>{t(lang, "masterRuleSub")}</small>
             </span>
           </label>
-          {settings.players === 4 && (
+          {settings.players === 4 && !settings.six && (
             <label className="switch">
               <input type="checkbox" checked={settings.teams} onChange={(e) => update({ teams: e.target.checked })} />
               <span>
@@ -202,6 +325,35 @@ export default function App() {
               </button>
             ))}
           </fieldset>
+          <fieldset className="seg boards">
+            <legend>
+              {t(lang, "diceSkin")}{" "}
+              <small className="spark-count">
+                <Icon name="spark" size={14} /> {t(lang, "sparks", { n: rewards.sparks })}
+              </small>
+            </legend>
+            {DICE_SKINS.map((d) => {
+              const owned = rewards.owned.includes(d);
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  aria-pressed={settings.dice === d}
+                  disabled={!owned && rewards.sparks < SKIN_COST[d]}
+                  onClick={() => pickSkin(d)}
+                  title={owned ? undefined : t(lang, "skinCost", { n: SKIN_COST[d] })}
+                >
+                  <span className={`swatch skin-${d}`} aria-hidden="true" />
+                  {t(lang, `skin_${d}`)}
+                  {!owned && (
+                    <small className="skin-cost">
+                      <Icon name="spark" size={12} /> {SKIN_COST[d]}
+                    </small>
+                  )}
+                </button>
+              );
+            })}
+          </fieldset>
           <button type="button" className="btn primary big" onClick={start}>
             {t(lang, "start")}
           </button>
@@ -211,13 +363,13 @@ export default function App() {
   }
 
   const startBots = (s: Settings) => {
-    const colors = seatColors(s.players);
+    const colors = seatColors(s.players, s.six);
     const seats: LocalSeat[] = colors.map((color, i) => ({
       color,
       name: i === 0 ? s.name.trim() || t(s.lang, "you") : `${t(s.lang, "bot")} ${i}`,
-      bot: i > 0 ? s.difficulty : null,
+      bot: i > 0 ? botLevel(s) : null,
     }));
-    setScreen({ name: "local", seats, quick: s.quick, master: s.master, teams: s.teams && s.players === 4, key: Date.now() });
+    setScreen({ name: "local", seats, quick: s.quick, master: s.master, teams: !s.six && s.teams && s.players === 4, six: s.six, key: Date.now() });
   };
   const finishOnboarding = (play: boolean) => {
     setOnboarding(false);
@@ -240,6 +392,14 @@ export default function App() {
             </small>
           </span>
         </div>
+        <button
+          type="button"
+          className={`chip-btn chest-btn${chestReady(rewards, today) ? " ready" : ""}`}
+          onClick={() => setChest({ amount: null })}
+          aria-label={`${t(lang, "chestReady")}: ${rewards.sparks}`}
+        >
+          <Icon name={chestReady(rewards, today) ? "gift" : "spark"} size={16} /> {rewards.sparks}
+        </button>
         <button type="button" className="chip-btn" onClick={() => update({ lang: lang === "en" ? "ne" : "en" })}>
           {t(lang, "language")}
         </button>
@@ -271,10 +431,17 @@ export default function App() {
           <strong>{t(lang, "passPlay")}</strong>
           <small>{t(lang, "passPlaySub")}</small>
         </button>
-        <div className={`tile tile-wide tl-blue online${WS_URL ? "" : " soon"}`}>
+        <button type="button" className="tile tile-wide tl-gold snakes-tile" onClick={() => (tap(), setScreen({ name: "snakesSetup" }))}>
+          <span className="tile-icon"><Icon name="ladder" size={30} /></span>
+          <strong>{t(lang, "snakes")}</strong>
+          <small>{t(lang, "snakesSub")}</small>
+        </button>
+        <div className={`tile tile-wide tl-blue online${onlineTile === "ready" ? "" : " soon"}`}>
           <span className="tile-icon"><Icon name="globe" size={30} /></span>
           <strong>{t(lang, "online")}</strong>
-          {WS_URL ? (
+          {onlineTile === "offline" ? (
+            <small role="status">{t(lang, "offlineHome")}</small>
+          ) : onlineTile === "ready" ? (
             <>
               <small>{t(lang, "onlineSub")}</small>
               <div className="online-row">
@@ -307,7 +474,7 @@ export default function App() {
           )}
         </div>
       </nav>
-      {WS_URL && friends.length > 0 && (
+      {onlineTile === "ready" && friends.length > 0 && (
         <section className="friends" aria-labelledby="friends-h">
           <h2 id="friends-h">{t(lang, "playAgainWith")}</h2>
           <ul>
@@ -361,6 +528,7 @@ export default function App() {
                 </li>
               ))}
             </ul>
+            <AccountRow lang={lang} name={settings.name} onName={(name) => update({ name })} />
             <div className="row-btns">
               <button type="button" className="btn" onClick={() => (setSettingsOpen(false), setRules(true))}>
                 <Icon name="book" size={18} /> {t(lang, "rules")}
@@ -377,6 +545,41 @@ export default function App() {
             <button type="button" className="btn primary big" onClick={() => setSettingsOpen(false)}>
               {t(lang, "close")}
             </button>
+          </div>
+        </div>
+      )}
+      {chest && (
+        <div className="results" role="dialog" aria-modal="true" aria-label={t(lang, "chestTitle")} onClick={() => setChest(null)}>
+          <div className="results-card chest-card" onClick={(e) => e.stopPropagation()}>
+            <h2>{t(lang, "chestTitle")}</h2>
+            <img className={`chest-art${chest.amount !== null ? " opened" : ""}`} src={chestArt} alt="" width={150} height={150} />
+            {chest.amount !== null ? (
+              <p className="chest-got" role="status">
+                {t(lang, "chestGot", { n: chest.amount })}
+              </p>
+            ) : !chestReady(rewards, today) ? (
+              <p className="muted">{t(lang, "chestDone")}</p>
+            ) : null}
+            <p className="muted">{t(lang, "chestNote")}</p>
+            {chest.amount === null && chestReady(rewards, today) ? (
+              <button
+                type="button"
+                className="btn primary big"
+                onClick={() => {
+                  const res = openChest(rewards, today);
+                  if (!res) return;
+                  tap();
+                  setRewards(() => res.rewards);
+                  setChest({ amount: res.amount });
+                }}
+              >
+                {t(lang, "chestOpen")}
+              </button>
+            ) : (
+              <button type="button" className="btn primary" onClick={() => setChest(null)}>
+                {t(lang, "close")}
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -401,9 +604,11 @@ function LocalGame({
   quick,
   master,
   teams,
+  six,
   settings,
   reduced,
   onGameOver,
+  wins,
   onExit,
   onAgain,
   onVerify,
@@ -412,14 +617,16 @@ function LocalGame({
   quick: boolean;
   master: boolean;
   teams: boolean;
+  six: boolean;
   settings: Settings;
   reduced: boolean;
   onGameOver(won: boolean): void;
+  wins: number;
   onExit(): void;
   onAgain(): void;
   onVerify(p: Proof): void;
 }) {
-  const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced, master, teams);
+  const ctl = useLocalGame(seats, quick, settings.clientSeed, reduced, master, teams, six);
   const state = ctl.state!;
   return (
     <GameView
@@ -430,6 +637,7 @@ function LocalGame({
       haptics={settings.haptics}
       reduced={reduced}
       onGameOver={onGameOver}
+      wins={wins}
       onExit={onExit}
       onAgain={onAgain}
       onVerify={() =>

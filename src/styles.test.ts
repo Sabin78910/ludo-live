@@ -47,3 +47,12 @@ describe("lobby hero art", () => {
     expect(css).toMatch(/\.switch input:focus-visible,\s*\.setting input:focus-visible \{[^}]*outline/);
   });
 });
+
+// The lobby hero is the largest paint; index.html preloads it so it does not wait for the CSS.
+describe("index.html", () => {
+  it("preloads the lobby hero image that exists", () => {
+    const html = readFileSync(resolve(process.cwd(), "index.html"), "utf8");
+    expect(html).toContain('rel="preload" as="image" href="./src/assets/lobby-hero.webp"');
+    expect(readFileSync(resolve(process.cwd(), "src/assets/lobby-hero.webp")).length).toBeGreaterThan(0);
+  });
+});

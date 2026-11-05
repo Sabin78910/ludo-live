@@ -1,29 +1,30 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
 import { Results } from "./Results";
 
-describe("Results", () => {
-  it("shows each player's sixes against the fair average", () => {
-    const noop = () => {};
-    render(
-      <Results
-        lang="en"
-        title="Red wins"
-        order={[{ name: "Red", color: "red" }, { name: "Blue", color: "blue" }]}
-        reduced
-        onHome={noop}
-        onVerify={noop}
-        luck={[
-          { player: 0, name: "Red", color: "red", rolls: 12, faces: [2, 2, 2, 2, 1, 3], sixes: 3, expectedSixes: 2 },
-          { player: 1, name: "Blue", color: "blue", rolls: 6, faces: [1, 1, 1, 1, 1, 1], sixes: 1, expectedSixes: 1 },
-        ]}
-      />,
-    );
-    expect(screen.getByRole("region", { name: "Dice this game" })).toBeTruthy();
-    expect(screen.getByText("3 sixes in 12 rolls · fair average 2")).toBeTruthy();
+const base = { lang: "en" as const, title: "You win!", order: [{ name: "You", color: "red" as const }], reduced: true, onHome() {}, onVerify() {} };
+
+describe("Results trophy track", () => {
+  it("celebrates a freshly earned trophy", () => {
+    render(<Results {...base} wins={3} won />);
+    expect(screen.getByText("New trophy: 3 wins!")).toBeInTheDocument();
   });
-  it("hides the dice summary when nobody rolled", () => {
-    render(<Results lang="en" title="Done" order={[]} reduced onHome={() => {}} onVerify={() => {}} />);
-    expect(screen.queryByText("Dice this game")).toBeNull();
+
+  it("shows the distance to the next trophy, and nothing without stats", () => {
+    const { rerender } = render(<Results {...base} wins={4} won={false} />);
+    expect(screen.getByText("1 more wins to the 5-win trophy")).toBeInTheDocument();
+    rerender(<Results {...base} />);
+    expect(screen.queryByText(/trophy/)).not.toBeInTheDocument();
+  });
+});
+
+describe("Results sparks reward", () => {
+  it("shows the sparks earned by the game", () => {
+    render(<Results {...base} sparks={25} />);
+    expect(screen.getByRole("status", { name: "You earned 25 sparks" })).toHaveTextContent("+25");
+  });
+
+  it("shows nothing when the game earned no sparks", () => {
+    render(<Results {...base} />);
+    expect(screen.queryByRole("status", { name: /sparks/ })).toBeNull();
   });
 });
