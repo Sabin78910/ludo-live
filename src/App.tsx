@@ -393,7 +393,7 @@ export default function App() {
           type="button"
           className={`chip-btn chest-btn${chestReady(rewards, today) ? " ready" : ""}`}
           onClick={() => setChest({ amount: null })}
-          aria-label={t(lang, "chestReady")}
+          aria-label={`${t(lang, "chestReady")}: ${rewards.sparks}`}
         >
           <Icon name={chestReady(rewards, today) ? "gift" : "spark"} size={16} /> {rewards.sparks}
         </button>
