@@ -6,6 +6,7 @@ import { useOnlineRoom } from "../online/useOnlineRoom";
 import { GameView } from "./GameView";
 import type { Proof } from "./Verify";
 import { Icon } from "./Icon";
+import { useOnline } from "../game/network";
 
 export interface OnlineProps {
   url: string;
@@ -32,6 +33,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
   const [master, setMaster] = useState(p.master);
   const [teams, setTeams] = useState(p.teams);
   const [copied, setCopied] = useState(false);
+  const online = useOnline();
   const reported = useRef(false);
   const started = room?.game != null;
   useEffect(() => {
@@ -56,7 +58,7 @@ export function OnlineRoomScreen(p: OnlineProps) {
     );
   }
 
-  const banner = status === "reconnecting" ? t(lang, "reconnecting") : status === "connecting" && room ? t(lang, "connecting") : null;
+  const banner = !online && status !== "open" ? t(lang, "offlineRoom") : status === "reconnecting" ? t(lang, "reconnecting") : status === "connecting" && room ? t(lang, "connecting") : null;
 
   if (room && room.game && controller) {
     const names = room.game.players.map((pl, i) => (room.playerSeats[i] === room.you ? `${pl.name} (${t(lang, "you")})` : pl.name));

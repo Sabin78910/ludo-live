@@ -1,8 +1,16 @@
-const CACHE = "ludo-live-v1";
+// The build fills in the cache name and the precache list (see src/game/precache.ts),
+// so the whole app is cached on first visit and runs offline.
+const CACHE = "ludo-live-__BUILD__";
+const PRECACHE = self.__PRECACHE__ || [];
 const SHELL = ["./", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", (event) => {
-  event.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
+  event.waitUntil(
+    caches.open(CACHE).then((c) =>
+      // One missing file must not stop the rest from being cached.
+      Promise.all([...new Set([...SHELL, ...PRECACHE])].map((u) => c.add(u).catch(() => undefined))),
+    ),
+  );
   self.skipWaiting();
 });
 
@@ -15,19 +23,24 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Network-first for same-origin GETs, falling back to cache when offline.
+function fromNetwork(req) {
+  return fetch(req).then((res) => {
+    if (res.ok) {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(req, copy));
+    }
+    return res;
+  });
+}
+
+// Pages are network-first so updates show up; built files are cache-first so the app
+// opens instantly and works with no connection.
 self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
-  event.respondWith(
-    fetch(req)
-      .then((res) => {
-        if (res.ok) {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy));
-        }
-        return res;
-      })
-      .catch(() => caches.match(req).then((hit) => hit || caches.match("./"))),
-  );
+  if (req.mode === "navigate") {
+    event.respondWith(fromNetwork(req).catch(() => caches.match(req).then((hit) => hit || caches.match("./"))));
+    return;
+  }
+  event.respondWith(caches.match(req, { ignoreVary: true }).then((hit) => hit || fromNetwork(req)));
 });

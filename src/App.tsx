@@ -21,6 +21,7 @@ import { Icon } from "./ui/Icon";
 import { OnlineRoomScreen } from "./ui/Online";
 import { SnakesGame, type SnakesSeat } from "./ui/SnakesGame";
 import { Verify, type Proof } from "./ui/Verify";
+import { onlineState, useOnline } from "./game/network";
 
 const WS_URL = import.meta.env.VITE_WS_URL;
 
@@ -41,6 +42,7 @@ export default function App() {
     return code && WS_URL ? { name: "online", code, create: false } : { name: "home" };
   });
   const [joinCode, setJoinCode] = useState(() => (typeof window !== "undefined" ? roomFromSearch(window.location.search) ?? "" : ""));
+  const onlineTile = onlineState(WS_URL, useOnline());
   const [rules, setRules] = useState(false);
   const [slBots, setSlBots] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -434,10 +436,12 @@ export default function App() {
           <strong>{t(lang, "snakes")}</strong>
           <small>{t(lang, "snakesSub")}</small>
         </button>
-        <div className={`tile tile-wide tl-blue online${WS_URL ? "" : " soon"}`}>
+        <div className={`tile tile-wide tl-blue online${onlineTile === "ready" ? "" : " soon"}`}>
           <span className="tile-icon"><Icon name="globe" size={30} /></span>
           <strong>{t(lang, "online")}</strong>
-          {WS_URL ? (
+          {onlineTile === "offline" ? (
+            <small role="status">{t(lang, "offlineHome")}</small>
+          ) : onlineTile === "ready" ? (
             <>
               <small>{t(lang, "onlineSub")}</small>
               <div className="online-row">
@@ -470,7 +474,7 @@ export default function App() {
           )}
         </div>
       </nav>
-      {WS_URL && friends.length > 0 && (
+      {onlineTile === "ready" && friends.length > 0 && (
         <section className="friends" aria-labelledby="friends-h">
           <h2 id="friends-h">{t(lang, "playAgainWith")}</h2>
           <ul>
