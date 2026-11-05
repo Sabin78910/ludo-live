@@ -16,3 +16,4 @@ worker/.wrangler/
 *.jks
 *.keystore
 .issue-body.md
+.wrangler/
