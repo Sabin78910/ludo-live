@@ -98,7 +98,7 @@ describe("first-run onboarding", () => {
     expect(screen.getByRole("button", { name: "Computer" })).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(screen.getByRole("button", { name: "2" }));
     await userEvent.click(screen.getByRole("button", { name: "Start game" }));
-    expect(screen.getByRole("img", { name: "Snakes & Ladders" })).toBeInTheDocument();
+    expect(await screen.findByRole("img", { name: "Snakes & Ladders" })).toBeInTheDocument();
     expect(screen.getAllByRole("listitem")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Tap the dice to roll" })).toBeInTheDocument();
   });

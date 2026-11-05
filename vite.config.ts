@@ -4,6 +4,7 @@ import react from "@vitejs/plugin-react";
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { injectPrecache } from "./src/game/precache";
+import { inlineCss } from "./scripts/inline-css";
 
 // Writes every built file into dist/sw.js so the app works offline from the first visit.
 function precacheServiceWorker(): Plugin {
@@ -28,7 +29,7 @@ function precacheServiceWorker(): Plugin {
 // base "./" makes the build work under the GitHub Pages sub-path and inside the Capacitor app.
 export default defineConfig({
   base: "./",
-  plugins: [react(), precacheServiceWorker()],
+  plugins: [inlineCss(), react(), precacheServiceWorker()],
   test: {
     globals: true,
     environment: "jsdom",

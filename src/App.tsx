@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { DIFFICULTIES, type Difficulty } from "./engine/bot";
 import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
@@ -15,12 +15,10 @@ import { chestReady, DICE_SKINS, earnForGame, loadRewards, openChest, saveReward
 import chestArt from "./assets/chest.webp";
 import { loadRating, pickDifficulty, saveRating, updateRating } from "./game/skill";
 import { needsOnboarding } from "./game/onboarding";
-import { GameView } from "./ui/GameView";
 import { Onboarding } from "./ui/Onboarding";
 import { Icon } from "./ui/Icon";
-import { OnlineRoomScreen } from "./ui/Online";
-import { SnakesGame, type SnakesSeat } from "./ui/SnakesGame";
-import { Verify, type Proof } from "./ui/Verify";
+import type { SnakesSeat } from "./ui/SnakesGame";
+import type { Proof } from "./ui/Verify";
 import { onlineState, useOnline } from "./game/network";
 
 const WS_URL = import.meta.env.VITE_WS_URL;
@@ -34,7 +32,21 @@ type Screen =
   | { name: "online"; code: string; create: boolean }
   | { name: "verify"; proof: Proof; back: Screen };
 
+// Screens that are not on the lobby load on demand, so first paint only waits for the lobby.
+const GameView = lazy(() => import("./ui/GameView").then((m) => ({ default: m.GameView })));
+const OnlineRoomScreen = lazy(() => import("./ui/Online").then((m) => ({ default: m.OnlineRoomScreen })));
+const SnakesGame = lazy(() => import("./ui/SnakesGame").then((m) => ({ default: m.SnakesGame })));
+const Verify = lazy(() => import("./ui/Verify").then((m) => ({ default: m.Verify })));
+
 export default function App() {
+  return (
+    <Suspense fallback={null}>
+      <AppScreens />
+    </Suspense>
+  );
+}
+
+function AppScreens() {
   const [settings, setSettings] = useState<Settings>(loadSettings);
   const [reduced, setReduced] = useState(prefersReducedMotion);
   const [screen, setScreen] = useState<Screen>(() => {
