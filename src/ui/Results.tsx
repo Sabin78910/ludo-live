@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { trophyProgress } from "../game/stats";
 import type { Color } from "../engine/rules";
-import { t, type Lang, type StringKey } from "../game/i18n";
+import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
+import type { DiceLuck } from "../game/luck";
 import { Icon } from "./Icon";
 
 const CONFETTI = ["#EF3B4F", "#22C55E", "#FACC15", "#3B82F6", "#F5C451", "#ffffff"];
@@ -14,6 +15,7 @@ export function Results({
   onAgain,
   onHome,
   onVerify,
+  luck = [],
   wins,
   won,
   sparks,
@@ -25,6 +27,7 @@ export function Results({
   onAgain?(): void;
   onHome(): void;
   onVerify(): void;
+  luck?: (DiceLuck & { name: string; color: Color })[];
   /** Lifetime wins after this game; shows progress to the next trophy. */
   wins?: number;
   /** This game was won, so the bar fills from the previous total. */
@@ -98,6 +101,34 @@ export function Results({
           <p className="fourth">
             {t(lang, "place4")}: {order[3].name}
           </p>
+        )}
+        {luck.some((l) => l.rolls > 0) && (
+          <section className="luck" aria-label={t(lang, "diceThisGame")}>
+            <h3>{t(lang, "diceThisGame")}</h3>
+            <ul>
+              {luck.map((l) => {
+                const top = Math.max(1, ...l.faces);
+                return (
+                  <li key={l.player}>
+                    <span className={`dot pc-${l.color}`} aria-hidden="true" />
+                    <span className="luck-name">{l.name}</span>
+                    <span className="faces" aria-hidden="true">
+                      {l.faces.map((f, i) => (
+                        <i key={i} className={i === 5 ? "six" : ""} style={{ height: `${Math.max(8, (f / top) * 100)}%` }} />
+                      ))}
+                    </span>
+                    <span className="luck-sixes">
+                      {t(lang, "sixesVsFair", {
+                        n: localDigits(lang, l.sixes),
+                        e: localDigits(lang, l.expectedSixes),
+                        r: localDigits(lang, l.rolls),
+                      })}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
         )}
         {sparks ? (
           <p className="sparks-earned" role="status" aria-label={t(lang, "sparksEarned", { n: sparks })}>

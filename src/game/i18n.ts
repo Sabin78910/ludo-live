@@ -110,6 +110,8 @@ const en = {
   playAgain: "Play again",
   home: "Home",
   verify: "Verify fairness",
+  diceThisGame: "Dice this game",
+  sixesVsFair: "{n} sixes in {r} rolls · fair average {e}",
   verifyTitle: "Provably fair dice",
   verifyIntro:
     "Before the first roll we published a hash of a secret seed. Every roll was computed from that seed and the players' seeds. Now the seed is revealed, so your browser can recompute every roll.",
@@ -297,6 +299,8 @@ const ne: Record<StringKey, string> = {
   playAgain: "फेरि खेल्नुहोस्",
   home: "गृह",
   verify: "निष्पक्षता जाँच्नुहोस्",
+  diceThisGame: "यो खेलको पासा",
+  sixesVsFair: "{r} पटकमा {n} छक्का · निष्पक्ष औसत {e}",
   verifyTitle: "प्रमाणित निष्पक्ष पासा",
   verifyIntro:
     "पहिलो पासा अघि हामीले गोप्य बीउको ह्यास प्रकाशित गर्यौं। हरेक पासा त्यही बीउ र खेलाडीका बीउबाट निकालिएको हो। अब बीउ खुलाइएको छ, त्यसैले तपाईंको ब्राउजरले हरेक पासा फेरि गणना गर्न सक्छ।",
