@@ -12,6 +12,7 @@ import { Board, ROTATION, type Burst } from "./Board";
 import { Dice } from "./Dice";
 import { Results } from "./Results";
 import { Icon } from "./Icon";
+import { diceLuck } from "../game/luck";
 
 export interface GameViewProps {
   ctl: Controller;
@@ -325,6 +326,7 @@ export function GameView(props: GameViewProps) {
           lang={lang}
           title={status}
           order={state.finished.map((i) => ({ name: names[i], color: colors[i] }))}
+          luck={diceLuck(state.rolls, state.finished).map((l) => ({ ...l, name: names[l.player], color: colors[l.player] }))}
           reduced={reduced}
           onAgain={props.onAgain}
           onHome={props.onExit}
