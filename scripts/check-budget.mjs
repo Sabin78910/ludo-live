@@ -1,3 +1,4 @@
+/* global process, console */
 // Startup budget: gzipped JS and CSS that index.html loads before first paint.
 // Lazy chunks do not count. Usage: node scripts/check-budget.mjs <maxKB>
 import { readFileSync } from 'node:fs';
