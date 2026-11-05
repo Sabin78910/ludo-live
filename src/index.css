@@ -2000,81 +2000,86 @@ button.tile:active {
   }
 }
 
-/* ===== Tabletop Noir (Nov 2026 redesign) =====
-   Warm ink table under one lamp instead of navy with rainbow glows. Colour lives in the pieces and
-   accents, not in the surfaces, so the board and the four seats stay the loudest thing on screen. */
+/* ===== Royal Blue lobby (Nov 2026, from leo's mockup) =====
+   Vivid royal-blue stage, glowing rims, saturated mode cards with a round arrow, gold Play button. */
 :root {
-  --bg: #0d0b0a;
-  --bg2: #15110e;
-  --surface: #1a1613;
-  --surface-2: #231e1a;
-  --glass: rgba(255, 240, 220, 0.06);
-  --glass-line: rgba(255, 236, 210, 0.12);
-  --text: #f7f2ea;
-  --muted: #b9ae9f;
-  --red: #e5484d;
-  --red-hi: #ff8b8e;
-  --red-lo: #8c1d24;
-  --green: #30a46c;
-  --green-hi: #7ee2a8;
-  --green-lo: #14573a;
-  --yellow: #f5b800;
-  --yellow-hi: #ffe08a;
-  --yellow-lo: #8f6a00;
-  --blue: #3e63dd;
-  --blue-hi: #9eb1ff;
-  --blue-lo: #1f3787;
-  --gold: #f2c14e;
-  --gold-line: rgba(242, 193, 78, 0.3);
-  --radius: 22px;
+  --bg: #0a1a5c;
+  --bg2: #1636a8;
+  --glass: rgba(120, 170, 255, 0.14);
+  --glass-line: rgba(150, 195, 255, 0.4);
+  --muted: #c3d3ff;
+  --purple: #6a3df0;
+  --purple-hi: #a58bff;
+  --purple-lo: #3a1aa8;
 }
 body {
   background:
-    radial-gradient(900px 520px at 50% -12%, rgba(242, 193, 78, 0.16), transparent 62%),
-    radial-gradient(1200px 900px at 50% 120%, rgba(0, 0, 0, 0.6), transparent 70%),
+    radial-gradient(900px 600px at 80% -10%, rgba(80, 160, 255, 0.45), transparent 60%),
+    radial-gradient(800px 600px at 0% 100%, rgba(110, 70, 255, 0.35), transparent 60%),
     linear-gradient(180deg, var(--bg2), var(--bg));
   background-attachment: fixed;
 }
-.btn.primary {
-  background: linear-gradient(180deg, #ffd56b, var(--gold));
-  color: #241a05;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 2px 0 #a97d14, 0 12px 28px rgba(242, 193, 78, 0.22);
+.hero-card {
+  background:
+    linear-gradient(90deg, rgba(14, 40, 140, 0.92) 0%, rgba(14, 40, 140, 0.8) 45%, rgba(14, 40, 140, 0.1) 82%, rgba(14, 40, 140, 0) 100%),
+    url("./assets/lobby-hero.webp") 72% center / cover no-repeat,
+    #102a8a;
+  border: 2px solid rgba(120, 190, 255, 0.7);
+  box-shadow: 0 0 0 4px rgba(60, 130, 255, 0.25), 0 0 40px rgba(60, 140, 255, 0.45), 0 24px 50px rgba(2, 10, 50, 0.5);
 }
-.btn.primary:active:not(:disabled) {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 #a97d14, 0 4px 12px rgba(242, 193, 78, 0.2);
+.btn.primary {
+  background: linear-gradient(180deg, #ffe07a, #ffbb1c);
+  color: #1d1300;
+  border-radius: 999px;
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.6), 0 4px 0 #c47d00, 0 12px 26px rgba(255, 190, 40, 0.4);
 }
 .tile {
-  color: var(--text);
+  border: 2px solid color-mix(in srgb, var(--hi) 70%, transparent);
   background:
-    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--c) 22%, transparent), transparent 55%),
-    linear-gradient(180deg, var(--surface-2), var(--surface));
-  border: 1px solid color-mix(in srgb, var(--c) 30%, var(--glass-line));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 18px 36px rgba(0, 0, 0, 0.4);
+    radial-gradient(120% 90% at 100% 0%, color-mix(in srgb, var(--hi) 45%, transparent), transparent 55%),
+    linear-gradient(160deg, var(--c), var(--lo));
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), 0 0 26px color-mix(in srgb, var(--c) 45%, transparent), 0 14px 30px rgba(2, 10, 50, 0.45);
 }
-.tile::after {
-  opacity: 0.5;
-  background:
-    radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--c) 70%, transparent) 0 7px, transparent 8px),
-    radial-gradient(circle at 70% 70%, color-mix(in srgb, var(--c) 70%, transparent) 0 7px, transparent 8px),
-    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--c) 70%, transparent) 0 7px, transparent 8px),
-    color-mix(in srgb, var(--c) 12%, transparent);
+.tile::before {
+  content: "›";
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font: 700 24px/1 var(--display);
+  padding-bottom: 3px;
+  color: #fff;
+  background: color-mix(in srgb, var(--lo) 70%, #000 10%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  z-index: 1;
 }
-button.tile:active {
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.35);
-}
-.tile strong {
-  text-shadow: none;
-  letter-spacing: -0.01em;
+.tile.soon::before,
+.tile-wide:not(.soon)::before {
+  display: none;
 }
 .tile small,
 .tile .soon-tag {
-  color: var(--muted) !important;
+  color: rgba(255, 255, 255, 0.88) !important;
 }
 .tile-icon {
-  color: #fff;
-  background: linear-gradient(160deg, var(--c), var(--lo));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 18px color-mix(in srgb, var(--c) 35%, transparent);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.35);
+}
+.tl-red {
+  --c: #e8203f;
+  --lo: #a00d2a;
 }
 .tl-green {
-  --c: var(--green);
+  --c: #1fae4a;
+  --lo: #0c7330;
+}
+.tl-blue {
+  --c: var(--purple);
+  --hi: var(--purple-hi);
+  --lo: var(--purple-lo);
 }
