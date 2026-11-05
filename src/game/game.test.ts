@@ -57,6 +57,11 @@ describe("share links", () => {
   it("builds the ?room= invite link", () => {
     expect(inviteLink("ABCDEF", loc)).toBe("https://sabin78910.github.io/ludo-live/?room=ABCDEF");
   });
+  it("uses the public site inside the Android app (https://localhost)", () => {
+    expect(inviteLink("ABCDEF", { origin: "https://localhost", pathname: "/" })).toBe(
+      "https://sabin78910.github.io/ludo-live/?room=ABCDEF",
+    );
+  });
   it("builds a WhatsApp share URL", () => {
     expect(whatsappUrl("Join A&B")).toBe("https://wa.me/?text=Join%20A%26B");
   });

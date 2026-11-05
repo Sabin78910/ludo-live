@@ -1,8 +1,12 @@
 // Invite links: https://<site>/?room=CODE, plus WhatsApp and native share helpers.
 import { normalizeRoomCode } from "../engine/protocol";
 
+// Inside the Android app the page is served from https://localhost, which friends cannot open.
+const PUBLIC_SITE = { origin: "https://sabin78910.github.io", pathname: "/ludo-live/" };
+
 export function inviteLink(code: string, location: { origin: string; pathname: string }): string {
-  return `${location.origin}${location.pathname}?room=${encodeURIComponent(code)}`;
+  const site = /^(https?:\/\/localhost(:\d+)?|capacitor:\/\/.*)$/.test(location.origin) ? PUBLIC_SITE : location;
+  return `${site.origin}${site.pathname}?room=${encodeURIComponent(code)}`;
 }
 
 export function whatsappUrl(text: string): string {
