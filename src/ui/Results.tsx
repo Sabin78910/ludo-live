@@ -16,6 +16,7 @@ export function Results({
   onVerify,
   wins,
   won,
+  sparks,
 }: {
   lang: Lang;
   title: string;
@@ -28,7 +29,22 @@ export function Results({
   wins?: number;
   /** This game was won, so the bar fills from the previous total. */
   won?: boolean;
+  /** Sparks earned by this game; counts up so the reward is seen landing. */
+  sparks?: number;
 }) {
+  const [shown, setShown] = useState(reduced ? (sparks ?? 0) : 0);
+  useEffect(() => {
+    if (!sparks || reduced) return;
+    const start = performance.now();
+    let id = 0;
+    const tick = (now: number) => {
+      const k = Math.min(1, (now - start) / 900);
+      setShown(Math.round(sparks * (1 - Math.pow(1 - k, 3))));
+      if (k < 1) id = requestAnimationFrame(tick);
+    };
+    id = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(id);
+  }, [sparks, reduced]);
   const before = wins !== undefined && won ? trophyProgress(wins - 1) : null;
   const after = wins !== undefined ? trophyProgress(wins) : null;
   // Start the bar where it was before this win, then fill it on the next frame.
@@ -83,6 +99,11 @@ export function Results({
             {t(lang, "place4")}: {order[3].name}
           </p>
         )}
+        {sparks ? (
+          <p className="sparks-earned" role="status" aria-label={t(lang, "sparksEarned", { n: sparks })}>
+            <Icon name="spark" size={20} /> +{shown}
+          </p>
+        ) : null}
         {after && wins !== undefined && (
           <div className={`trophy-track${won && after.fresh ? " fresh" : ""}`}>
             <p>

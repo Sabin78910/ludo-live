@@ -16,3 +16,15 @@ describe("Results trophy track", () => {
     expect(screen.queryByText(/trophy/)).not.toBeInTheDocument();
   });
 });
+
+describe("Results sparks reward", () => {
+  it("shows the sparks earned by the game", () => {
+    render(<Results {...base} sparks={25} />);
+    expect(screen.getByRole("status", { name: "You earned 25 sparks" })).toHaveTextContent("+25");
+  });
+
+  it("shows nothing when the game earned no sparks", () => {
+    render(<Results {...base} />);
+    expect(screen.queryByRole("status", { name: /sparks/ })).toBeNull();
+  });
+});
