@@ -1025,6 +1025,8 @@ a.btn {
   inset: 0;
   z-index: 2000;
   display: grid;
+  /* One column capped at the viewport, so long text can never push a card past the screen edge. */
+  grid-template-columns: minmax(0, 1fr);
   place-items: center;
   padding: 16px;
   background: rgba(5, 8, 22, 0.72);
@@ -1344,6 +1346,7 @@ button.fair-chip {
 /* Onboarding */
 .ob-card {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
   justify-items: center;
   padding-top: 28px;

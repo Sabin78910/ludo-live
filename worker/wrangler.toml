@@ -16,3 +16,10 @@ new_sqlite_classes = ["LudoRoom"]
 
 [observability]
 enabled = true
+
+# Per-IP WebSocket connect limit, checked in the Worker before a room wakes up.
+# 60 connects a minute per IP is far above real use (one room, a few reconnects).
+[[ratelimits]]
+name = "JOIN_LIMIT"
+namespace_id = "1001"
+simple = { limit = 60, period = 60 }
