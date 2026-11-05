@@ -10,6 +10,7 @@ import { play, vibrate, type Sfx } from "../game/sound";
 import type { Reaction } from "../online/useOnlineRoom";
 import { Board, ROTATION, type Burst } from "./Board";
 import { HexBoard, hexRows } from "./HexBoard";
+import { PLAY_SPARKS, WIN_SPARKS } from "../game/rewards";
 import { HEX_TRACK, hexTokenPosition } from "../engine/hex";
 import { Dice } from "./Dice";
 import { Results } from "./Results";
@@ -336,6 +337,7 @@ export function GameView(props: GameViewProps) {
           onVerify={props.onVerify}
           wins={ctl.bots.some(Boolean) ? props.wins : undefined}
           won={!ctl.local.every(Boolean) && winners(state).some((i) => ctl.local[i])}
+          sparks={ctl.bots.some(Boolean) ? PLAY_SPARKS + (winners(state).some((i) => ctl.local[i]) ? WIN_SPARKS : 0) : undefined}
         />
       )}
     </div>
