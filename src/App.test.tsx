@@ -16,6 +16,11 @@ describe("App", () => {
     expect(screen.getByText("Online coming soon")).toBeInTheDocument();
   });
 
+  it("names the chest button with the visible spark count", () => {
+    render(<App />);
+    expect(screen.getByRole("button", { name: "Daily chest: 0" })).toBeInTheDocument();
+  });
+
   it("switches to Nepali", async () => {
     render(<App />);
     await userEvent.click(screen.getByRole("button", { name: "भाषा: नेपाली" }));
