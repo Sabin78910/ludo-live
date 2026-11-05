@@ -1,3 +1,4 @@
+/* global WebSocket, performance, setTimeout, console, process */
 // Local load test against `wrangler dev`: ROOMS rooms x 2 players play real turns for SECS seconds.
 // Run the Worker without the per-IP limit (every load socket shares one IP): npx wrangler dev -c load/wrangler.load.toml
 // Usage: node load/load.mjs [ws://127.0.0.1:8787] [rooms] [secs]
