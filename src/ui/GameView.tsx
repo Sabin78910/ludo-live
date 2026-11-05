@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { tokenPosition, TRACK } from "../engine/board";
 import { EMOJIS } from "../engine/protocol";
-import { homeLocked, legalMoves, winners } from "../engine/rules";
+import { geoOf, homeLocked, legalMoves, winners, type ClassicColor } from "../engine/rules";
 import { ROLL_MS, buildFrames, eventToast, homeCount, hopPitch } from "../game/anim";
 import type { Controller } from "../game/controller";
 import { localDigits, t, type Lang, type StringKey } from "../game/i18n";
@@ -9,6 +9,8 @@ import { tableRows } from "../game/table";
 import { play, vibrate, type Sfx } from "../game/sound";
 import type { Reaction } from "../online/useOnlineRoom";
 import { Board, ROTATION, type Burst } from "./Board";
+import { HexBoard, hexRows } from "./HexBoard";
+import { HEX_TRACK, hexTokenPosition } from "../engine/hex";
 import { Dice } from "./Dice";
 import { Results } from "./Results";
 import { Icon } from "./Icon";
@@ -95,14 +97,14 @@ export function GameView(props: GameViewProps) {
             setHopping(`${x.player}-${x.token}`);
             sfx("enter");
           } else if (x.kind === "capture") {
-            const [r, c] = TRACK[x.cell];
+            const [r, c] = state.six ? HEX_TRACK[x.cell].map((v) => v - 0.5) : TRACK[x.cell];
             const id = ++burstId.current;
             setBursts((b) => [...b, { id, row: r + 0.5, col: c + 0.5, color: colors[x.victim] }]);
             later(900, () => setBursts((b) => b.filter((y) => y.id !== id)));
             sfx("capture");
             setShake((n) => n + 1);
           } else if (x.kind === "home") {
-            const [r, c] = tokenPosition(colors[x.player], 56, x.token);
+            const [r, c] = state.six ? hexTokenPosition(colors[x.player], 82, x.token) : tokenPosition(colors[x.player], 56, x.token);
             const id = ++burstId.current;
             setBursts((b) => [...b, { id, row: r, col: c, color: colors[x.player] }]);
             later(900, () => setBursts((b) => b.filter((y) => y.id !== id)));
@@ -164,7 +166,7 @@ export function GameView(props: GameViewProps) {
   const diceValue = lastRoll && lastRoll.type === "roll" ? lastRoll.value : (state.rolls.at(-1)?.value ?? 1);
   const allLocal = ctl.local.every(Boolean);
   const me = ctl.local.findIndex(Boolean);
-  const rotation = !allLocal && me >= 0 ? ROTATION[colors[me]] : 0;
+  const rotation = !state.six && !allLocal && me >= 0 ? ROTATION[colors[me] as ClassicColor] : 0;
   const cur = state.current;
   const curName = names[cur];
   const canRoll = ctl.canAct && state.phase === "roll" && !rolling;
@@ -182,14 +184,15 @@ export function GameView(props: GameViewProps) {
 
   const reactionsFor = (player: number) =>
     (props.reactions ?? []).filter((r) => (props.playerOfSeat ? props.playerOfSeat(r.seat) : -1) === player);
-  const rows = tableRows(colors, rotation);
+  const BoardFor = state.six ? HexBoard : Board;
+  const rows = state.six ? hexRows(colors) : tableRows(colors, rotation);
 
   // A player's seat at the table: avatar ring, name, tokens home, and the dice when it is their turn.
   const pod = (i: number, right: boolean) => {
     const p = state.players[i];
     const place = state.finished.indexOf(i);
     const active = i === cur && !over;
-    const home = homeCount(display[i] ?? []);
+    const home = homeCount(display[i] ?? [], geoOf(state).finish);
     return (
       <li key={p.color} className={`pod pc-${p.color}${active ? " active" : ""}${right ? " right" : ""}`}>
         <span className="avatar-ring" style={active && secondsLeft !== null && ctl.deadline ? ({ "--left": `${Math.min(1, secondsLeft / 20)}` } as React.CSSProperties) : undefined}>
@@ -254,13 +257,13 @@ export function GameView(props: GameViewProps) {
       </header>
       {props.banner && <div className="banner">{props.banner}</div>}
 
-      <ol className="pods pods-top" aria-label={t(lang, "players")}>
+      <ol className={`pods pods-top${state.six ? " pods-six" : ""}`} aria-label={t(lang, "players")}>
         {rows.top.map((i, k) => (i === null ? <li key={`e${k}`} className="pod-empty" aria-hidden="true" role="presentation" /> : pod(i, k === 1)))}
       </ol>
 
       <div className={`stage${shake && !reduced ? ` shake-${shake % 2}` : ""}`}>
         <div className="board-tilt">
-          <Board
+          <BoardFor
             colors={colors}
             tokens={display}
             movable={movable}
@@ -279,7 +282,7 @@ export function GameView(props: GameViewProps) {
         )}
       </div>
 
-      <ol className="pods pods-bottom" aria-label={t(lang, "players")}>
+      <ol className={`pods pods-bottom${state.six ? " pods-six" : ""}`} aria-label={t(lang, "players")}>
         {rows.bottom.map((i, k) => (i === null ? <li key={`e${k}`} className="pod-empty" aria-hidden="true" role="presentation" /> : pod(i, k === 1)))}
       </ol>
 

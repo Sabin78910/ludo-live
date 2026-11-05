@@ -1,5 +1,6 @@
 // Player preferences saved in localStorage. Reads are defensive: storage can be missing or corrupt.
 import type { Difficulty } from "../engine/bot";
+import { DICE_SKINS, type DiceSkin } from "./rewards";
 import { randomHex } from "../engine/fair";
 import type { Lang } from "./i18n";
 
@@ -14,7 +15,11 @@ export interface Settings {
   marks: boolean;
   name: string;
   difficulty: Difficulty;
+  /** Auto bot level: picks the tier from the on-device skill rating. */
+  autoLevel: boolean;
   players: number;
+  /** 6-player hexagon board instead of the classic 4-player board. */
+  six: boolean;
   quick: boolean;
   /** Master rule: capture before entering home. */
   master: boolean;
@@ -24,6 +29,8 @@ export interface Settings {
   onboarded: boolean;
   /** Board finish. Cosmetic only, never affects play. */
   board: BoardTheme;
+  /** Dice skin, unlocked with sparks. Cosmetic only. */
+  dice: DiceSkin;
   /** Larger type across the app for low vision and older players. */
   largeText: boolean;
   /** This device's contribution to the fair-dice seeds. */
@@ -40,12 +47,15 @@ export function defaultSettings(lang: Lang = "en"): Settings {
     marks: false,
     name: "",
     difficulty: "normal",
+    autoLevel: true,
     players: 4,
+    six: false,
     quick: false,
     master: false,
     teams: false,
     onboarded: false,
     board: "classic",
+    dice: "classic",
     largeText: false,
     clientSeed: randomHex(8),
   };
@@ -66,12 +76,15 @@ export function parseSettings(raw: string | null, fallback: Settings): Settings 
       marks: typeof o.marks === "boolean" ? o.marks : fallback.marks,
       name: typeof o.name === "string" ? o.name.slice(0, 16) : fallback.name,
       difficulty: o.difficulty === "easy" || o.difficulty === "hard" || o.difficulty === "normal" ? o.difficulty : fallback.difficulty,
-      players: typeof o.players === "number" && o.players >= 2 && o.players <= 4 ? Math.round(o.players) : fallback.players,
+      autoLevel: typeof o.autoLevel === "boolean" ? o.autoLevel : fallback.autoLevel,
+      players: typeof o.players === "number" && o.players >= 2 && o.players <= (o.six === true ? 6 : 4) ? Math.round(o.players) : fallback.players,
+      six: typeof o.six === "boolean" ? o.six : fallback.six,
       quick: typeof o.quick === "boolean" ? o.quick : fallback.quick,
       master: typeof o.master === "boolean" ? o.master : fallback.master,
       teams: typeof o.teams === "boolean" ? o.teams : fallback.teams,
       onboarded: typeof o.onboarded === "boolean" ? o.onboarded : fallback.onboarded,
       board: BOARD_THEMES.includes(o.board as BoardTheme) ? (o.board as BoardTheme) : fallback.board,
+      dice: DICE_SKINS.includes(o.dice as DiceSkin) ? (o.dice as DiceSkin) : fallback.dice,
       largeText: typeof o.largeText === "boolean" ? o.largeText : fallback.largeText,
       clientSeed: typeof o.clientSeed === "string" && /^[0-9a-f]{8,64}$/.test(o.clientSeed) ? o.clientSeed : fallback.clientSeed,
     };

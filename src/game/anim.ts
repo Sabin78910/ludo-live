@@ -69,8 +69,8 @@ export function hopPitch(step: number, steps: number): number {
 }
 
 /** How many of a player's tokens have reached home, for the progress pips on each player chip. */
-export function homeCount(tokens: readonly number[]): number {
-  return tokens.filter((p) => p === FINISH).length;
+export function homeCount(tokens: readonly number[], finish = FINISH): number {
+  return tokens.filter((p) => p === finish).length;
 }
 
 /** The status message key for the latest events. */
