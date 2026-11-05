@@ -1999,3 +1999,82 @@ button.tile:active {
     transition: none;
   }
 }
+
+/* ===== Tabletop Noir (Nov 2026 redesign) =====
+   Warm ink table under one lamp instead of navy with rainbow glows. Colour lives in the pieces and
+   accents, not in the surfaces, so the board and the four seats stay the loudest thing on screen. */
+:root {
+  --bg: #0d0b0a;
+  --bg2: #15110e;
+  --surface: #1a1613;
+  --surface-2: #231e1a;
+  --glass: rgba(255, 240, 220, 0.06);
+  --glass-line: rgba(255, 236, 210, 0.12);
+  --text: #f7f2ea;
+  --muted: #b9ae9f;
+  --red: #e5484d;
+  --red-hi: #ff8b8e;
+  --red-lo: #8c1d24;
+  --green: #30a46c;
+  --green-hi: #7ee2a8;
+  --green-lo: #14573a;
+  --yellow: #f5b800;
+  --yellow-hi: #ffe08a;
+  --yellow-lo: #8f6a00;
+  --blue: #3e63dd;
+  --blue-hi: #9eb1ff;
+  --blue-lo: #1f3787;
+  --gold: #f2c14e;
+  --gold-line: rgba(242, 193, 78, 0.3);
+  --radius: 22px;
+}
+body {
+  background:
+    radial-gradient(900px 520px at 50% -12%, rgba(242, 193, 78, 0.16), transparent 62%),
+    radial-gradient(1200px 900px at 50% 120%, rgba(0, 0, 0, 0.6), transparent 70%),
+    linear-gradient(180deg, var(--bg2), var(--bg));
+  background-attachment: fixed;
+}
+.btn.primary {
+  background: linear-gradient(180deg, #ffd56b, var(--gold));
+  color: #241a05;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.55), 0 2px 0 #a97d14, 0 12px 28px rgba(242, 193, 78, 0.22);
+}
+.btn.primary:active:not(:disabled) {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 0 #a97d14, 0 4px 12px rgba(242, 193, 78, 0.2);
+}
+.tile {
+  color: var(--text);
+  background:
+    radial-gradient(140% 100% at 0% 0%, color-mix(in srgb, var(--c) 22%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--surface-2), var(--surface));
+  border: 1px solid color-mix(in srgb, var(--c) 30%, var(--glass-line));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 18px 36px rgba(0, 0, 0, 0.4);
+}
+.tile::after {
+  opacity: 0.5;
+  background:
+    radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--c) 70%, transparent) 0 7px, transparent 8px),
+    radial-gradient(circle at 70% 70%, color-mix(in srgb, var(--c) 70%, transparent) 0 7px, transparent 8px),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--c) 70%, transparent) 0 7px, transparent 8px),
+    color-mix(in srgb, var(--c) 12%, transparent);
+}
+button.tile:active {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.35);
+}
+.tile strong {
+  text-shadow: none;
+  letter-spacing: -0.01em;
+}
+.tile small,
+.tile .soon-tag {
+  color: var(--muted) !important;
+}
+.tile-icon {
+  color: #fff;
+  background: linear-gradient(160deg, var(--c), var(--lo));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), 0 8px 18px color-mix(in srgb, var(--c) 35%, transparent);
+}
+.tl-green {
+  --c: var(--green);
+}
