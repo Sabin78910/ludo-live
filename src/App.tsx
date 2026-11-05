@@ -4,6 +4,7 @@ import { newRoomCode, normalizeRoomCode } from "./engine/protocol";
 import { seatColors } from "./engine/rules";
 import { t, type StringKey } from "./game/i18n";
 import { useInstallPrompt } from "./game/install";
+import { AccountRow } from "./ui/Account";
 import { BOARD_THEMES, loadSettings, saveSettings, type Settings } from "./game/settings";
 import { roomFromSearch, roomSocketUrl, stripRoomParam } from "./game/share";
 import { play, prefersReducedMotion } from "./game/sound";
@@ -523,6 +524,7 @@ export default function App() {
                 </li>
               ))}
             </ul>
+            <AccountRow lang={lang} name={settings.name} onName={(name) => update({ name })} />
             <div className="row-btns">
               <button type="button" className="btn" onClick={() => (setSettingsOpen(false), setRules(true))}>
                 <Icon name="book" size={18} /> {t(lang, "rules")}
